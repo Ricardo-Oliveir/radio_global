@@ -2236,20 +2236,56 @@ function buildOrder(){
 }
 
 /* ---------- Anúncios (Google AdSense) ---------- */
-// Preencha com os dados da sua conta AdSense. Com 'client' vazio, nenhum anúncio aparece.
-const ADS = {client:'', slot:''};   // client: 'ca-pub-XXXXXXXXXXXXXXXX'   slot: número do bloco de anúncio (só dígitos)
-(function ads(){
+
+const ADS = {
+  client: 'ca-pub-6760898010595076',
+  slot: '6623111374'
+};
+
+(function ads() {
   if (!/^ca-pub-\d+$/.test(ADS.client) || !/^\d+$/.test(ADS.slot)) return;
-  const band = document.createElement('div'); band.id = 'adband';
-  const ins = document.createElement('ins'); ins.className = 'adsbygoogle'; ins.style.cssText = 'display:block;width:100%;height:90px';
-  ins.dataset.adClient = ADS.client; ins.dataset.adSlot = ADS.slot; ins.dataset.adFormat = 'horizontal'; ins.dataset.fullWidthResponsive = 'true';
-  const pv = document.createElement('a'); pv.href = 'privacidade.html'; pv.target = '_blank'; pv.rel = 'noopener'; pv.textContent = 'Privacidade'; pv.className = 'pv';
-  band.append(ins, pv); document.body.append(band); document.body.classList.add('hasads');
-  const sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
-  sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADS.client;
-  sc.onload = () => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} };
+
+  const band = document.createElement('div');
+  band.id = 'adband';
+
+  const ins = document.createElement('ins');
+  ins.className = 'adsbygoogle';
+  ins.style.cssText = 'display:block;width:100%;height:90px';
+
+  ins.dataset.adClient = ADS.client;
+  ins.dataset.adSlot = ADS.slot;
+  ins.dataset.adFormat = 'auto';
+  ins.dataset.fullWidthResponsive = 'true';
+
+  const pv = document.createElement('a');
+  pv.href = 'privacidade.html';
+  pv.target = '_blank';
+  pv.rel = 'noopener';
+  pv.textContent = 'Privacidade';
+  pv.className = 'pv';
+
+  band.append(ins, pv);
+
+  document.body.append(band);
+  document.body.classList.add('hasads');
+
+  const sc = document.createElement('script');
+  sc.async = true;
+  sc.crossOrigin = 'anonymous';
+
+  sc.src =
+    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' +
+    ADS.client;
+
+  sc.onload = () => {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch {}
+  };
+
   document.head.append(sc);
 })();
+
 
 /* ---------- Rádios (Radio Browser) ---------- */
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
