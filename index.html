@@ -1,0 +1,2634 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rádios pelo Mundo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Tela de viagem: o globo voa até a cidade, a rádio local começa a tocar e uma faixa mostra onde estamos. */
+:root{
+  --ink:#06101c;
+  --sea-hi:#2aa7ff;
+  --sea-lo:#07276b;
+  --land:#3cc16f;
+  --text:#f2f6f8;
+  --dim:#a9bdca;
+  --mark:#ff5b7f;
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:var(--mono);overflow:hidden}
+body:not(.active){cursor:none}
+button,input{font:inherit;color:inherit}
+#app{position:fixed;inset:0}
+
+#radioLayer{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,#3a1230 0%,#12081c 55%,#06040c 100%);overflow:hidden}
+.rad{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 7vw 22vh;animation:fadein 1s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.rad .eq{position:absolute;left:0;right:0;bottom:0;height:62%;display:flex;align-items:flex-end;justify-content:center;gap:.7vw;padding:0 3vw;opacity:.55}
+.rad .eq i{flex:1;max-width:3.2vw;min-width:4px;height:100%;border-radius:6px 6px 0 0;transform-origin:bottom;background:linear-gradient(to top,#ff5b7f,#7a2bd6);animation:eq 1.2s ease-in-out infinite alternate}
+@keyframes eq{from{transform:scaleY(.08)}to{transform:scaleY(var(--h,.7))}}
+#radioLayer.still .eq i{animation-play-state:paused}
+.rad .box{position:relative;max-width:90vw}
+.rad img{display:block;margin:0 auto 2.4vh;width:clamp(64px,11vh,160px);height:clamp(64px,11vh,160px);object-fit:contain;border-radius:18px;background:rgba(255,255,255,.08)}
+.rad b{display:block;font:700 clamp(40px,8vw,150px)/.95 var(--display);text-transform:uppercase;text-wrap:balance}
+.rad span{display:block;margin-top:1.6vh;font-size:clamp(13px,1.6vw,28px);color:var(--dim)}
+#gate{position:absolute;inset:0;z-index:9;display:grid;place-items:center;text-align:center;padding:0 6vw;background:radial-gradient(ellipse at 50% 40%,#3a1230,#06040c 75%)}
+#gate.off{display:none}
+#gate h1{margin:0;font:700 clamp(48px,9vw,170px)/.92 var(--display);text-transform:uppercase}
+#gate p{margin:1.4vh auto 3vh;max-width:46ch;color:var(--dim);font-size:clamp(14px,1.5vw,24px);line-height:1.5}
+#gate .btn{font-size:clamp(15px,1.6vw,26px);padding:14px 26px;margin:6px}
+#vol{width:90px;accent-color:var(--mark)}
+#globe{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .9s ease;pointer-events:none;
+  background:radial-gradient(ellipse at 62% 45%,#143f8c 0%,#1d1048 45%,#080414 80%)}
+#globe.on{opacity:1}
+
+#flight{position:absolute;left:5vw;bottom:9vh;max-width:44vw;opacity:0;transform:translateY(12px);transition:.6s ease;pointer-events:none}
+#flight.on{opacity:1;transform:none}
+#flight small{display:block;font:500 clamp(12px,1.1vw,20px)/1 var(--mono);letter-spacing:.3em;text-transform:uppercase;color:var(--mark)}
+#flight h2{margin:.18em 0 .12em;font:700 clamp(40px,6.6vw,132px)/.92 var(--display);text-transform:uppercase;text-wrap:balance}
+#flight p{margin:0;font-size:clamp(14px,1.5vw,28px);color:var(--dim)}
+
+#mini{position:absolute;top:3vh;right:3vw;width:clamp(100px,12vw,240px);aspect-ratio:1;opacity:0;transition:opacity .8s ease;pointer-events:none}
+#mini.on{opacity:1}
+
+#lower{position:absolute;left:0;right:0;bottom:0;padding:14vh 4vw 4.6vh;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2vh 4vw;align-items:end;
+  background:linear-gradient(to top,rgba(6,16,28,.95) 0%,rgba(6,16,28,.8) 48%,rgba(6,16,28,0) 100%);
+  opacity:0;transform:translateY(14px);transition:opacity .8s ease,transform .8s ease;pointer-events:none}
+#lower.on{opacity:1;transform:none}
+.tag{display:inline-block;background:var(--mark);color:#1a0610;padding:.3em .8em .25em;font:700 clamp(14px,1.5vw,28px)/1 var(--display);letter-spacing:.16em}
+#lCity{margin:.16em 0 0;font:700 clamp(44px,6.4vw,128px)/.95 var(--display);text-transform:uppercase;text-wrap:balance}
+#lPlace{margin:.3em 0 0;font-size:clamp(15px,1.8vw,34px)}
+#lPlace span{color:var(--dim)}
+#lDesc[hidden]{display:none}
+#lDesc{margin:.7em 0 0;max-width:62ch;font-size:clamp(12px,1.15vw,22px);line-height:1.5;color:var(--dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:grid;grid-template-columns:auto auto;gap:1.4vh 2.6vw;margin:0;font-size:clamp(12px,1.15vw,22px)}
+.meta dt{font-size:.72em;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.meta dd{margin:.2em 0 0;font-weight:500;font-variant-numeric:tabular-nums}
+.meta .big{font-size:1.9em;line-height:1}
+.next{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;gap:.4em 2em;font-size:clamp(11px,1vw,19px);color:var(--dim);letter-spacing:.05em}
+.next b{color:var(--text);font-weight:500}
+
+#progress{position:absolute;left:0;right:0;bottom:0;height:max(4px,.55vh);background:rgba(255,255,255,.12)}
+#progress i{display:block;height:100%;width:0;background:var(--mark)}
+
+#hud{position:absolute;top:2vh;left:2vw;display:flex;flex-wrap:wrap;gap:8px;align-items:center;opacity:0;transition:opacity .3s}
+body.active #hud{opacity:1}
+#hud button{background:rgba(6,16,28,.84);border:1px solid rgba(255,255,255,.24);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px}
+#hud button:hover,#hud button:focus-visible{border-color:var(--mark);outline:none}
+#hud span{font-size:12px;color:var(--dim);background:rgba(6,16,28,.72);padding:6px 10px;border-radius:8px}
+
+#opts{position:absolute;inset:0;display:none;overflow:auto;background:rgba(3,8,14,.96);padding:6vh max(16px,5vw)}
+#opts.on{display:block}
+#opts h3{margin:0 0 .5em;font:700 clamp(28px,3vw,48px)/1 var(--display);text-transform:uppercase;letter-spacing:.04em}
+#opts p{max-width:70ch;color:var(--dim);line-height:1.55;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:1.2em}
+.row label{font-size:14px;color:var(--dim)}
+#secs{width:100px;padding:8px;background:#0a1624;border:1px solid rgba(255,255,255,.22);border-radius:8px}
+.btn{padding:10px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.26);background:transparent;cursor:pointer}
+.btn.main{background:var(--mark);border-color:var(--mark);color:#1a0610;font-weight:500}
+.btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#countries{margin-top:1.6em;max-width:1000px;font-size:13px;line-height:1.7;color:var(--dim)}
+
+@media (max-width:820px){
+  #lower{grid-template-columns:1fr}
+  #flight{max-width:90vw;bottom:5vh}
+}
+@media (pointer:coarse){#hud span{display:none}#hud button{padding:12px 14px}}
+@media (prefers-reduced-motion:reduce){.rad .eq i{animation:none!important;transform:scaleY(.4)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="gate">
+    <div>
+      <h1>Rádios pelo Mundo</h1>
+      <p>O globo viaja de cidade em cidade e toca uma rádio de lá. Toque abaixo para ligar o som.</p>
+      <button class="btn main" id="bStart" type="button">Ligar o rádio</button>
+      <button class="btn" id="bStartFull" type="button">Ligar em tela cheia</button>
+    </div>
+  </div>
+  <div id="radioLayer"></div>
+  <canvas id="globe"></canvas>
+  <div id="flight"><small></small><h2></h2><p></p></div>
+  <canvas id="mini"></canvas>
+
+  <div id="lower">
+    <div>
+      <div class="tag">AO VIVO · RÁDIO</div>
+      <h1 id="lCity" style="margin-bottom:0"></h1>
+      <p id="lPlace"></p>
+      <p id="lDesc"></p>
+    </div>
+    <dl class="meta">
+      <div><dt>Hora local</dt><dd class="big" id="lTime">--:--:--</dd><dd id="lDate"></dd></div>
+      <div><dt>Fuso</dt><dd id="lTz"></dd><dd id="lDay"></dd></div>
+      <div><dt>Coordenadas</dt><dd id="lCoord"></dd></div>
+      <div><dt>Parada</dt><dd id="lStop"></dd><dd id="lLap"></dd></div>
+    </dl>
+    <div class="next"><span>Próxima parada: <b id="lNext"></b> · em <span id="lCount"></span></span><span id="lCredit"></span></div>
+  </div>
+  <div id="progress"><i></i></div>
+
+  <div id="hud">
+    <button id="bPrev" type="button">◀ Anterior</button>
+    <button id="bPause" type="button">Pausar</button>
+    <button id="bNext" type="button">Próxima ▶</button>
+    <button id="bOpts" type="button">Opções</button>
+    <button id="bMute" type="button">Som</button>
+    <input id="vol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Volume">
+    <button id="bFull" type="button">Tela cheia</button>
+    <span>Teclas: ← → espaço F M ↑↓ O</span>
+  </div>
+
+  <section id="opts" aria-label="Opções">
+    <h3>Opções</h3>
+    <p id="resumo"></p>
+    <p>A ordem é sorteada de modo que cada parada seja de um país diferente da anterior. Nenhuma cidade se repete até todas passarem. Depois a ordem é sorteada de novo e a viagem recomeça.</p>
+    <div class="row">
+      <label for="secs">Segundos em cada cidade (sem contar o voo do globo)</label>
+      <input id="secs" type="number" min="15" max="7200" step="5" value="120">
+    </div>
+    <p style="margin-top:.4em">Para uma cidade por hora, use 3600.</p>
+    <p>As rádios vêm do diretório aberto Radio Browser. Nem toda cidade tem rádio cadastrada: nesse caso toca uma rádio da região ou popular do país, e a tela avisa qual foi o caso. Só entram rádios com transmissão https.</p>
+    <div class="row">
+      <button class="btn main" id="bApply" type="button">Aplicar e recomeçar</button>
+      <button class="btn" id="bClose" type="button">Fechar</button>
+    </div>
+    <div id="countries"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const DEG = Math.PI / 180, TAU = Math.PI * 2;
+const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+class Cancel {}
+
+/* ---------- Cidades: nome | país (código) | latitude | longitude | fuso (opcional) | página da Wikipédia do ponto turístico (opcional) ---------- */
+const RAW = `
+Rio de Janeiro|BR|-22.9068|-43.1729|America/Sao_Paulo|Cristo Redentor
+Foz do Iguaçu|BR|-25.5163|-54.5854|America/Sao_Paulo|Cataratas do Iguaçu
+Salvador|BR|-12.9777|-38.5016|America/Bahia|Pelourinho
+Manaus|BR|-3.119|-60.0217|America/Manaus|Teatro Amazonas
+Brasília|BR|-15.7939|-47.8828|America/Sao_Paulo|Palácio da Alvorada
+Florianópolis|BR|-27.5949|-48.5482|America/Sao_Paulo|Ponte Hercílio Luz
+São Paulo|BR|-23.5505|-46.6333|America/Sao_Paulo|Avenida Paulista
+Ouro Preto|BR|-20.3856|-43.5035|America/Sao_Paulo|Igreja de São Francisco de Assis (Ouro Preto)
+Belém|BR|-1.4558|-48.4902|America/Belem|Ver-o-Peso
+Porto Alegre|BR|-30.0346|-51.2177|America/Sao_Paulo|Usina do Gasômetro
+Buenos Aires|AR|-34.6037|-58.3816|America/Argentina/Buenos_Aires|Obelisco de Buenos Aires
+El Calafate|AR|-50.3407|-72.2648|America/Argentina/Rio_Gallegos|Glaciar Perito Moreno
+Montevidéu|UY|-34.9011|-56.1645|America/Montevideo|Palácio Salvo
+Santiago|CL|-33.4489|-70.6693|America/Santiago|Cerro San Cristóbal
+Hanga Roa|CL|-27.1127|-109.3497|Pacific/Easter|Moai
+Cusco|PE|-13.5319|-71.9675|America/Lima|Machu Picchu
+Uyuni|BO|-20.4635|-66.8259|America/La_Paz|Salar de Uyuni
+Quito|EC|-0.1807|-78.4678|America/Guayaquil|Centro Histórico de Quito
+Puerto Ayora|EC|-0.7424|-90.3025|Pacific/Galapagos|Ilhas Galápagos
+Cartagena|CO|10.391|-75.4794|America/Bogota|Cartagena das Índias
+Cidade do Panamá|PA|8.9824|-79.5199|America/Panama|Canal do Panamá
+Havana|CU|23.1136|-82.3666|America/Havana|Havana Velha
+Tikal|GT|17.222|-89.6237|America/Guatemala|Tikal
+Cidade do México|MX|19.4326|-99.1332|America/Mexico_City|Palácio de Belas Artes
+Chichén Itzá|MX|20.6843|-88.5678|America/Merida|Chichén Itzá
+Nova York|US|40.7128|-74.006|America/New_York|Estátua da Liberdade
+São Francisco|US|37.7749|-122.4194|America/Los_Angeles|Ponte Golden Gate
+Los Angeles|US|34.0522|-118.2437|America/Los_Angeles|Letreiro de Hollywood
+Washington|US|38.9072|-77.0369|America/New_York|Lincoln Memorial
+Las Vegas|US|36.1699|-115.1398|America/Los_Angeles|Las Vegas Strip
+Toronto|CA|43.6532|-79.3832|America/Toronto|Torre CN
+Vancouver|CA|49.2827|-123.1207|America/Vancouver|Stanley Park
+Lake Louise|CA|51.4254|-116.1773|America/Edmonton|Lago Louise
+Paris|FR|48.8566|2.3522|Europe/Paris|Torre Eiffel
+Londres|GB|51.5074|-0.1278|Europe/London|Big Ben
+Edimburgo|GB|55.9533|-3.1883|Europe/London|Castelo de Edimburgo
+Dublin|IE|53.3498|-6.2603|Europe/Dublin|Castelo de Dublin
+Lisboa|PT|38.7223|-9.1393|Europe/Lisbon|Torre de Belém
+Porto|PT|41.1579|-8.6291|Europe/Lisbon|Ponte Dom Luís I
+Madri|ES|40.4168|-3.7038|Europe/Madrid|Palácio Real de Madrid
+Barcelona|ES|41.3851|2.1734|Europe/Madrid|Sagrada Família
+Roma|IT|41.9028|12.4964|Europe/Rome|Coliseu
+Veneza|IT|45.4408|12.3155|Europe/Rome|Praça de São Marcos
+Florença|IT|43.7696|11.2558|Europe/Rome|Catedral de Santa Maria del Fiore
+Vaticano|VA|41.9022|12.4539|Europe/Vatican|Basílica de São Pedro
+Mônaco|MC|43.7384|7.4246|Europe/Monaco|Cassino de Monte Carlo
+Zermatt|CH|46.0207|7.7491|Europe/Zurich|Matterhorn
+Berlim|DE|52.52|13.405|Europe/Berlin|Portão de Brandemburgo
+Munique|DE|48.1351|11.582|Europe/Berlin|Marienplatz
+Viena|AT|48.2082|16.3738|Europe/Vienna|Palácio de Schönbrunn
+Praga|CZ|50.0755|14.4378|Europe/Prague|Ponte Carlos
+Budapeste|HU|47.4979|19.0402|Europe/Budapest|Parlamento da Hungria
+Cracóvia|PL|50.0647|19.945|Europe/Warsaw|Castelo de Wawel
+Amsterdã|NL|52.3676|4.9041|Europe/Amsterdam|Casa de Anne Frank
+Bruxelas|BE|50.8503|4.3517|Europe/Brussels|Grand-Place
+Copenhague|DK|55.6761|12.5683|Europe/Copenhagen|Nyhavn
+Oslo|NO|59.9139|10.7522|Europe/Oslo|Ópera de Oslo
+Estocolmo|SE|59.3293|18.0686|Europe/Stockholm|Gamla stan
+Helsinque|FI|60.1699|24.9384|Europe/Helsinki|Suomenlinna
+Reykjavik|IS|64.1466|-21.9426|Atlantic/Reykjavik|Hallgrímskirkja
+Tallinn|EE|59.437|24.7536|Europe/Tallinn|Tallinn
+Moscou|RU|55.7558|37.6173|Europe/Moscow|Catedral de São Basílio
+São Petersburgo|RU|59.9311|30.3609|Europe/Moscow|Palácio de Inverno
+Atenas|GR|37.9838|23.7275|Europe/Athens|Partenon
+Istambul|TR|41.0082|28.9784|Europe/Istanbul|Hagia Sophia
+Dubrovnik|HR|42.6507|18.0944|Europe/Zagreb|Dubrovnik
+Bled|SI|46.3683|14.1146|Europe/Ljubljana|Lago Bled
+Mostar|BA|43.3438|17.8078|Europe/Sarajevo|Stari Most
+Kotor|ME|42.4247|18.7712|Europe/Podgorica|Baía de Kotor
+Bran|RO|45.5149|25.3671|Europe/Bucharest|Castelo de Bran
+Valeta|MT|35.8989|14.5146|Europe/Malta|Valeta
+Cairo|EG|30.0444|31.2357|Africa/Cairo|Grande Pirâmide de Gizé
+Marrakech|MA|31.6295|-7.9811|Africa/Casablanca|Praça Jemaa el-Fna
+Tunis|TN|36.8065|10.1815|Africa/Tunis|Cartago
+Cidade do Cabo|ZA|-33.9249|18.4241|Africa/Johannesburg|Montanha da Mesa
+Victoria Falls|ZW|-17.9243|25.8572|Africa/Harare|Cataratas Vitória
+Serengeti|TZ|-2.3333|34.8333|Africa/Dar_es_Salaam|Parque Nacional de Serengeti
+Masai Mara|KE|-1.4061|35.0147|Africa/Nairobi|Masai Mara
+Sossusvlei|NA|-24.7275|15.3422|Africa/Windhoek|Sossusvlei
+Lalibela|ET|12.0319|39.0472|Africa/Addis_Ababa|Lalibela
+Dubai|AE|25.2048|55.2708|Asia/Dubai|Burj Khalifa
+Petra|JO|30.3285|35.4444|Asia/Amman|Petra
+Isfahan|IR|32.6546|51.668|Asia/Tehran|Praça Naqsh-e Jahan
+Samarcanda|UZ|39.6542|66.9597|Asia/Samarkand|Registão
+Délhi|IN|28.6139|77.209|Asia/Kolkata|Portão da Índia
+Agra|IN|27.1767|78.0081|Asia/Kolkata|Taj Mahal
+Jaipur|IN|26.9124|75.7873|Asia/Kolkata|Hawa Mahal
+Katmandu|NP|27.7172|85.324|Asia/Kathmandu|Boudhanath
+Paro|BT|27.4305|89.4136|Asia/Thimphu|Paro Taktsang
+Bangkok|TH|13.7563|100.5018|Asia/Bangkok|Wat Arun
+Siem Reap|KH|13.3633|103.8564|Asia/Phnom_Penh|Angkor Wat
+Ha Long|VN|20.9101|107.1839|Asia/Ho_Chi_Minh|Baía de Ha Long
+Kuala Lumpur|MY|3.139|101.6869|Asia/Kuala_Lumpur|Torres Petronas
+Singapura|SG|1.3521|103.8198|Asia/Singapore|Marina Bay Sands
+Magelang|ID|-7.6079|110.2038|Asia/Jakarta|Borobudur
+Pequim|CN|39.9042|116.4074|Asia/Shanghai|Cidade Proibida
+Xangai|CN|31.2304|121.4737|Asia/Shanghai|Torre Pérola Oriental
+Taipé|TW|25.033|121.5654|Asia/Taipei|Taipei 101
+Seul|KR|37.5665|126.978|Asia/Seoul|Palácio Gyeongbokgung
+Tóquio|JP|35.6762|139.6503|Asia/Tokyo|Torre de Tóquio
+Quioto|JP|35.0116|135.7681|Asia/Tokyo|Fushimi Inari-taisha
+Sydney|AU|-33.8688|151.2093|Australia/Sydney|Ópera de Sydney
+Auckland|NZ|-36.8485|174.7633|Pacific/Auckland|Sky Tower
+Fortaleza|BR|-3.73|-38.53|America/Fortaleza
+Belo Horizonte|BR|-19.92|-43.94
+Curitiba|BR|-25.43|-49.27
+Recife|BR|-8.05|-34.88|America/Recife
+Goiânia|BR|-16.68|-49.25
+Guarulhos|BR|-23.46|-46.53
+Campinas|BR|-22.91|-47.06
+São Luís|BR|-2.53|-44.30|America/Fortaleza
+Maceió|BR|-9.67|-35.74|America/Maceio
+Natal|BR|-5.79|-35.21|America/Fortaleza
+Campo Grande|BR|-20.47|-54.62|America/Campo_Grande
+Teresina|BR|-5.09|-42.80|America/Fortaleza
+João Pessoa|BR|-7.12|-34.86|America/Fortaleza
+Aracaju|BR|-10.91|-37.07|America/Maceio
+Cuiabá|BR|-15.60|-56.10|America/Cuiaba
+Vitória|BR|-20.32|-40.34
+Porto Velho|BR|-8.76|-63.90|America/Porto_Velho
+Macapá|BR|0.03|-51.07|America/Belem
+Rio Branco|BR|-9.97|-67.81|America/Rio_Branco
+Boa Vista|BR|2.82|-60.67|America/Boa_Vista
+Palmas|BR|-10.18|-48.33|America/Araguaina
+Santos|BR|-23.96|-46.33
+Ribeirão Preto|BR|-21.18|-47.81
+Uberlândia|BR|-18.92|-48.28
+Sorocaba|BR|-23.50|-47.46
+Juiz de Fora|BR|-21.76|-43.35
+Londrina|BR|-23.31|-51.16
+Joinville|BR|-26.30|-48.85
+Niterói|BR|-22.88|-43.10
+Petrópolis|BR|-22.51|-43.18
+Gramado|BR|-29.38|-50.87
+Armação dos Búzios|BR|-22.75|-41.88
+Paraty|BR|-23.22|-44.71
+Bonito|BR|-21.13|-56.48|America/Campo_Grande
+Jericoacoara|BR|-2.80|-40.51|America/Fortaleza
+Fernando de Noronha|BR|-3.85|-32.42|America/Noronha
+Olinda|BR|-8.01|-34.86|America/Recife
+Porto Seguro|BR|-16.44|-39.06|America/Bahia
+Ilhabela|BR|-23.78|-45.36
+Campos do Jordão|BR|-22.74|-45.59
+Balneário Camboriú|BR|-26.99|-48.63
+Blumenau|BR|-26.92|-49.07
+Caxias do Sul|BR|-29.17|-51.18
+Pelotas|BR|-31.77|-52.34
+Santa Maria|BR|-29.69|-53.81
+Maringá|BR|-23.42|-51.94
+Cascavel|BR|-24.96|-53.46
+São José dos Campos|BR|-23.22|-45.90
+Piracicaba|BR|-22.73|-47.65
+Bauru|BR|-22.31|-49.06
+Montes Claros|BR|-16.73|-43.86
+Diamantina|BR|-18.24|-43.60
+Tiradentes|BR|-21.11|-44.18
+São João del-Rei|BR|-21.14|-44.26
+Mariana|BR|-20.38|-43.42
+Lençóis|BR|-12.56|-41.39|America/Bahia
+Alto Paraíso de Goiás|BR|-14.13|-47.51
+Chapada Diamantina|BR|-12.60|-41.40|America/Bahia
+Lençóis Maranhenses|BR|-2.48|-43.13|America/Fortaleza
+Parintins|BR|-2.63|-56.74|America/Manaus
+Santarém|BR|-2.44|-54.71|America/Santarem
+Chicago|US|41.88|-87.63|USC
+Houston|US|29.76|-95.37|USC
+Phoenix|US|33.45|-112.07|USX
+Filadélfia|US|39.95|-75.17
+San Antonio|US|29.42|-98.49|USC
+San Diego|US|32.72|-117.16|USP
+Dallas|US|32.78|-96.80|USC
+San Jose|US|37.34|-121.89|USP
+Austin|US|30.27|-97.74|USC
+Jacksonville|US|30.33|-81.66
+Columbus|US|39.96|-83.00
+Charlotte|US|35.23|-80.84
+Indianápolis|US|39.77|-86.16
+Seattle|US|47.61|-122.33|USP
+Denver|US|39.74|-104.99|USM
+Boston|US|42.36|-71.06
+Nashville|US|36.16|-86.78|USC
+Detroit|US|42.33|-83.05
+Portland|US|45.52|-122.68|USP
+Memphis|US|35.15|-90.05|USC
+Oklahoma City|US|35.47|-97.52|USC
+Louisville|US|38.25|-85.76
+Baltimore|US|39.29|-76.61
+Milwaukee|US|43.04|-87.91|USC
+Albuquerque|US|35.08|-106.65|USM
+Tucson|US|32.22|-110.97|USX
+Sacramento|US|38.58|-121.49|USP
+Kansas City|US|39.10|-94.58|USC
+Atlanta|US|33.75|-84.39
+Miami|US|25.76|-80.19
+Orlando|US|28.54|-81.38
+Tampa|US|27.95|-82.46
+Nova Orleans|US|29.95|-90.07|USC
+Cleveland|US|41.50|-81.69
+Pittsburgh|US|40.44|-80.00
+Cincinnati|US|39.10|-84.51
+Minneapolis|US|44.98|-93.27|USC
+Salt Lake City|US|40.76|-111.89|USM
+Honolulu|US|21.31|-157.86|USH
+Anchorage|US|61.22|-149.90|USK
+St. Louis|US|38.63|-90.20|USC
+Raleigh|US|35.78|-78.64
+Richmond|US|37.54|-77.44
+Charleston|US|32.78|-79.93
+Savannah|US|32.08|-81.09
+Santa Fé|US|35.69|-105.94|USM
+Boise|US|43.62|-116.20|USM
+Omaha|US|41.26|-95.93|USC
+Buffalo|US|42.89|-78.88
+Key West|US|24.56|-81.78
+Sedona|US|34.87|-111.76|USX
+Santa Bárbara|US|34.42|-119.70|USP
+Monterey|US|36.60|-121.89|USP
+Yellowstone|US|44.46|-110.83|USM
+Jackson|US|43.48|-110.76|USM
+Grand Canyon|US|36.05|-112.14|USX
+Fairbanks|US|64.84|-147.72|USK
+Maui|US|20.80|-156.33|USH
+Montreal|CA|45.50|-73.57
+Calgary|CA|51.05|-114.07|America/Edmonton
+Edmonton|CA|53.55|-113.49|America/Edmonton
+Ottawa|CA|45.42|-75.70
+Winnipeg|CA|49.90|-97.14|America/Winnipeg
+Quebec|CA|46.81|-71.21
+Halifax|CA|44.65|-63.57|America/Halifax
+Victoria|CA|48.43|-123.37|America/Vancouver
+Banff|CA|51.18|-115.57|America/Edmonton
+Saskatoon|CA|52.13|-106.67|America/Regina
+St. John's|CA|47.56|-52.71|America/St_Johns
+Whitehorse|CA|60.72|-135.06|America/Whitehorse
+Jasper|CA|52.87|-118.08|America/Edmonton
+Tofino|CA|49.15|-125.90|America/Vancouver
+Guadalajara|MX|20.66|-103.35
+Monterrey|MX|25.69|-100.32
+Puebla|MX|19.04|-98.21
+Tijuana|MX|32.51|-117.04|America/Tijuana
+León|MX|21.12|-101.68
+Mérida|MX|20.97|-89.62|America/Merida
+Cancún|MX|21.16|-86.85|America/Cancun
+Oaxaca|MX|17.07|-96.73
+Guanajuato|MX|21.02|-101.26
+San Miguel de Allende|MX|20.91|-100.74
+Tulum|MX|20.21|-87.47|America/Cancun
+Playa del Carmen|MX|20.63|-87.08|America/Cancun
+Los Cabos|MX|22.89|-109.91|America/Mazatlan
+Puerto Vallarta|MX|20.65|-105.23
+Acapulco|MX|16.85|-99.92
+Taxco|MX|18.56|-99.61
+Morelia|MX|19.70|-101.19
+Querétaro|MX|20.59|-100.39
+Veracruz|MX|19.17|-96.13
+Chihuahua|MX|28.63|-106.07|America/Chihuahua
+Mazatlán|MX|23.25|-106.41|America/Mazatlan
+Palenque|MX|17.51|-91.98
+San Cristóbal de las Casas|MX|16.74|-92.64
+Teotihuacán|MX|19.69|-98.84
+Bogotá|CO|4.71|-74.07
+Medellín|CO|6.24|-75.58
+Cali|CO|3.45|-76.53
+Barranquilla|CO|10.97|-74.78
+Santa Marta|CO|11.24|-74.20
+San Andrés|CO|12.58|-81.70
+Salento|CO|4.64|-75.57
+Bucaramanga|CO|7.12|-73.12
+Lima|PE|-12.05|-77.04
+Arequipa|PE|-16.41|-71.54
+Trujillo|PE|-8.11|-79.03
+Iquitos|PE|-3.75|-73.25
+Puno|PE|-15.84|-70.02
+Huaraz|PE|-9.53|-77.53
+Paracas|PE|-13.83|-76.25
+Caracas|VE|10.48|-66.90
+Maracaibo|VE|10.63|-71.64
+Canaima|VE|6.24|-62.85
+Guayaquil|EC|-2.17|-79.92
+Cuenca|EC|-2.90|-79.00
+Baños|EC|-1.40|-78.42
+La Paz|BO|-16.50|-68.15
+Santa Cruz de la Sierra|BO|-17.78|-63.18
+Sucre|BO|-19.03|-65.26
+Cochabamba|BO|-17.39|-66.16
+Copacabana (Bolívia)|BO|-16.17|-69.09
+Assunção|PY|-25.26|-57.58
+Ciudad del Este|PY|-25.51|-54.61
+Punta del Este|UY|-34.96|-54.95
+Colonia del Sacramento|UY|-34.47|-57.84
+Córdoba|AR|-31.42|-64.18
+Rosário|AR|-32.95|-60.64
+Mendoza|AR|-32.89|-68.83|America/Argentina/Mendoza
+La Plata|AR|-34.92|-57.95
+San Miguel de Tucumán|AR|-26.81|-65.22|America/Argentina/Tucuman
+Salta|AR|-24.78|-65.41|America/Argentina/Salta
+Mar del Plata|AR|-38.00|-57.55
+San Carlos de Bariloche|AR|-41.13|-71.31
+Ushuaia|AR|-54.80|-68.30|America/Argentina/Ushuaia
+Puerto Iguazú|AR|-25.60|-54.57
+Valparaíso|CL|-33.05|-71.62
+Viña del Mar|CL|-33.02|-71.55
+Punta Arenas|CL|-53.16|-70.91|America/Punta_Arenas
+San Pedro de Atacama|CL|-22.91|-68.20
+Puerto Varas|CL|-41.32|-72.99
+Concepción|CL|-36.83|-73.05
+Puerto Natales|CL|-51.73|-72.50|America/Punta_Arenas
+Monteverde|CR|10.30|-84.82
+La Fortuna|CR|10.47|-84.64
+Manágua|NI|12.14|-86.25
+Granada (Nicarágua)|NI|11.93|-85.96
+Tegucigalpa|HN|14.07|-87.19
+Copán Ruínas|HN|14.84|-89.15
+San Salvador|SV|13.69|-89.19
+Cidade da Guatemala|GT|14.63|-90.51
+Antígua Guatemala|GT|14.56|-90.73
+Flores|GT|16.93|-89.89
+Belize City|BZ|17.50|-88.20
+Bocas del Toro|PA|9.34|-82.24
+Trinidad (Cuba)|CU|21.80|-79.98
+Varadero|CU|23.15|-81.25
+Santiago de Cuba|CU|20.02|-75.83
+Kingston|JM|17.97|-76.79
+Montego Bay|JM|18.47|-77.92
+Santo Domingo|DO|18.49|-69.93
+Punta Cana|DO|18.58|-68.41
+Porto Príncipe|HT|18.54|-72.34
+Nassau|BS|25.05|-77.35
+Bridgetown|BB|13.10|-59.61
+Port of Spain|TT|10.66|-61.51
+San Juan|PR|18.47|-66.11
+Georgetown|GY|6.80|-58.16
+Paramaribo|SR|5.85|-55.20
+Caiena|GF|4.94|-52.33
+Nuuk|GL|64.18|-51.72
+Birmingham|GB|52.48|-1.90
+Manchester|GB|53.48|-2.24
+Glasgow|GB|55.86|-4.25
+Liverpool|GB|53.41|-2.98
+Leeds|GB|53.80|-1.55
+Bristol|GB|51.45|-2.59
+Cardiff|GB|51.48|-3.18
+Belfast|GB|54.60|-5.93
+Oxford|GB|51.75|-1.26
+Cambridge|GB|52.21|0.12
+Bath|GB|51.38|-2.36
+York|GB|53.96|-1.08
+Canterbury|GB|51.28|1.08
+Inverness|GB|57.48|-4.22
+Brighton|GB|50.82|-0.14
+Newcastle upon Tyne|GB|54.98|-1.61
+Stratford-upon-Avon|GB|52.19|-1.71
+Cork|IE|51.90|-8.47
+Galway|IE|53.27|-9.05
+Limerick|IE|52.66|-8.63
+Killarney|IE|52.06|-9.50
+Marselha|FR|43.30|5.37
+Lyon|FR|45.76|4.84
+Toulouse|FR|43.60|1.44
+Nice|FR|43.70|7.27
+Nantes|FR|47.22|-1.55
+Estrasburgo|FR|48.57|7.75
+Montpellier|FR|43.61|3.88
+Bordéus|FR|44.84|-0.58
+Lille|FR|50.63|3.06
+Rennes|FR|48.12|-1.68
+Reims|FR|49.26|4.03
+Avinhão|FR|43.95|4.81
+Cannes|FR|43.55|7.02
+Carcassonne|FR|43.21|2.35
+Mont-Saint-Michel|FR|48.64|-1.51
+Chamonix|FR|45.92|6.87
+Annecy|FR|45.90|6.13
+Dijon|FR|47.32|5.04
+Rouen|FR|49.44|1.10
+Arles|FR|43.68|4.63
+Biarritz|FR|43.48|-1.56
+Colmar|FR|48.08|7.36
+Versalhes|FR|48.80|2.13
+Hamburgo|DE|53.55|9.99
+Colônia|DE|50.94|6.96
+Frankfurt|DE|50.11|8.68
+Stuttgart|DE|48.78|9.18
+Düsseldorf|DE|51.23|6.78
+Dortmund|DE|51.51|7.47
+Essen|DE|51.46|7.01
+Leipzig|DE|51.34|12.37
+Bremen|DE|53.08|8.80
+Dresden|DE|51.05|13.74
+Hanôver|DE|52.37|9.74
+Nuremberg|DE|49.45|11.08
+Heidelberg|DE|49.40|8.67
+Friburgo em Brisgóvia|DE|47.99|7.85
+Lübeck|DE|53.87|10.69
+Weimar|DE|50.98|11.33
+Potsdam|DE|52.40|13.07
+Rothenburg ob der Tauber|DE|49.38|10.18
+Bonn|DE|50.74|7.10
+Aachen|DE|50.78|6.08
+Tréveris|DE|49.76|6.64
+Milão|IT|45.46|9.19
+Nápoles|IT|40.85|14.27
+Turim|IT|45.07|7.69
+Palermo|IT|38.12|13.36
+Gênova|IT|44.41|8.93
+Bolonha|IT|44.49|11.34
+Bari|IT|41.12|16.87
+Catânia|IT|37.50|15.09
+Verona|IT|45.44|10.99
+Pisa|IT|43.72|10.40
+Siena|IT|43.32|11.33
+Pompeia|IT|40.75|14.49
+Amalfi|IT|40.63|14.60
+Cagliari|IT|39.22|9.12
+Trieste|IT|45.65|13.78
+Lecce|IT|40.35|18.17
+Matera|IT|40.67|16.60
+Como|IT|45.81|9.09
+Taormina|IT|37.85|15.29
+Riomaggiore|IT|44.10|9.74
+Pádua|IT|45.41|11.88
+Perúgia|IT|43.11|12.39
+Assis|IT|43.07|12.62
+Siracusa|IT|37.08|15.29
+Sorrento|IT|40.63|14.38
+Bérgamo|IT|45.70|9.67
+Valência|ES|39.47|-0.38
+Sevilha|ES|37.39|-5.98
+Saragoça|ES|41.65|-0.89
+Málaga|ES|36.72|-4.42
+Bilbau|ES|43.26|-2.93
+Córdova (Espanha)|ES|37.89|-4.78
+Toledo (Espanha)|ES|39.86|-4.02
+San Sebastián|ES|43.32|-1.98
+Palma de Maiorca|ES|39.57|2.65
+Las Palmas de Gran Canaria|ES|28.12|-15.43|Atlantic/Canary
+Santiago de Compostela|ES|42.88|-8.54
+Salamanca|ES|40.97|-5.66
+Ibiza|ES|38.91|1.43
+Santander|ES|43.46|-3.81
+Cádis|ES|36.53|-6.29
+Ronda|ES|36.74|-5.17
+Segóvia|ES|40.95|-4.12
+Pamplona|ES|42.82|-1.64
+Santa Cruz de Tenerife|ES|28.47|-16.25|Atlantic/Canary
+Coimbra|PT|40.21|-8.43
+Braga|PT|41.55|-8.42
+Faro|PT|37.02|-7.93
+Sintra|PT|38.80|-9.38
+Évora|PT|38.57|-7.91
+Funchal|PT|32.65|-16.91|Atlantic/Madeira
+Ponta Delgada|PT|37.74|-25.67|Atlantic/Azores
+Aveiro|PT|40.64|-8.65
+Guimarães|PT|41.44|-8.30
+Lagos (Portugal)|PT|37.10|-8.67
+Óbidos|PT|39.36|-9.16
+Roterdã|NL|51.92|4.48
+Haia|NL|52.08|4.31
+Utrecht|NL|52.09|5.12
+Eindhoven|NL|51.44|5.48
+Delft|NL|52.01|4.36
+Groningen|NL|53.22|6.57
+Maastricht|NL|50.85|5.69
+Antuérpia|BE|51.22|4.40
+Gante|BE|51.05|3.72
+Bruges|BE|51.21|3.22
+Liège|BE|50.63|5.57
+Lovaina|BE|50.88|4.70
+Zurique|CH|47.38|8.54
+Genebra|CH|46.20|6.14
+Basileia|CH|47.56|7.59
+Berna|CH|46.95|7.45
+Lausanne|CH|46.52|6.63
+Lucerna|CH|47.05|8.31
+Interlaken|CH|46.69|7.86
+Lugano|CH|46.00|8.95
+St. Moritz|CH|46.49|9.84
+Salzburgo|AT|47.81|13.04
+Innsbruck|AT|47.26|11.39
+Graz|AT|47.07|15.44
+Linz|AT|48.31|14.29
+Hallstatt|AT|47.56|13.65
+Brno|CZ|49.20|16.61
+Český Krumlov|CZ|48.81|14.32
+Karlovy Vary|CZ|50.23|12.87
+Ostrava|CZ|49.83|18.28
+Pilsen|CZ|49.75|13.38
+Varsóvia|PL|52.23|21.01
+Łódź|PL|51.76|19.46
+Breslávia|PL|51.11|17.04
+Poznań|PL|52.41|16.93
+Gdańsk|PL|54.35|18.65
+Katowice|PL|50.26|19.02
+Zakopane|PL|49.30|19.95
+Toruń|PL|53.01|18.60
+Debrecen|HU|47.53|21.63
+Pécs|HU|46.07|18.23
+Eger|HU|47.90|20.38
+Bratislava|SK|48.15|17.11
+Košice|SK|48.72|21.26
+Liubliana|SI|46.06|14.51
+Maribor|SI|46.56|15.65
+Zagreb|HR|45.81|15.98
+Split|HR|43.51|16.44
+Zadar|HR|44.12|15.23
+Pula|HR|44.87|13.85
+Hvar|HR|43.17|16.44
+Plitvice|HR|44.88|15.62
+Belgrado|RS|44.79|20.45
+Novi Sad|RS|45.25|19.84
+Sarajevo|BA|43.86|18.41
+Podgorica|ME|42.44|19.26
+Tirana|AL|41.33|19.82
+Berat|AL|40.71|19.95
+Saranda|AL|39.88|20.01
+Escópia|MK|41.99|21.43
+Ohrid|MK|41.12|20.80
+Salônica|GR|40.64|22.94
+Santorini|GR|36.39|25.46
+Míconos|GR|37.45|25.33
+Heraclião|GR|35.34|25.13
+Rodes|GR|36.43|28.22
+Delfos|GR|38.48|22.50
+Corfu|GR|39.62|19.92
+Kalambaka|GR|39.71|21.63
+Sófia|BG|42.70|23.32
+Plovdiv|BG|42.14|24.75
+Varna|BG|43.21|27.91
+Bucareste|RO|44.43|26.10
+Cluj-Napoca|RO|46.77|23.59
+Brașov|RO|45.65|25.61
+Sibiu|RO|45.80|24.15
+Sighișoara|RO|46.22|24.79
+Timișoara|RO|45.75|21.23
+Chisinau|MD|47.01|28.86
+Kiev|UA|50.45|30.52
+Lviv|UA|49.84|24.03
+Odessa|UA|46.48|30.73
+Carcóvia|UA|49.99|36.23
+Dnipro|UA|48.46|35.05
+Minsk|BY|53.90|27.57
+Vilnius|LT|54.69|25.28
+Kaunas|LT|54.90|23.89
+Riga|LV|56.95|24.11
+Tartu|EE|58.38|26.72
+Tampere|FI|61.50|23.76
+Rovaniemi|FI|66.50|25.73
+Turku|FI|60.45|22.27
+Gotemburgo|SE|57.71|11.97
+Malmö|SE|55.60|13.00
+Uppsala|SE|59.86|17.64
+Kiruna|SE|67.86|20.23
+Visby|SE|57.64|18.29
+Bergen|NO|60.39|5.32
+Tromsø|NO|69.65|18.96
+Stavanger|NO|58.97|5.73
+Trondheim|NO|63.43|10.40
+Geiranger|NO|62.10|7.21
+Svolvær|NO|68.23|14.57
+Aarhus|DK|56.16|10.20
+Odense|DK|55.40|10.39
+Aalborg|DK|57.05|9.92
+Akureyri|IS|65.69|-18.09
+Luxemburgo (cidade)|LU|49.61|6.13
+Vaduz|LI|47.14|9.52
+Andorra la Velha|AD|42.51|1.52
+San Marino|SM|43.94|12.45
+Mdina|MT|35.89|14.40
+Nicósia|CY|35.19|33.38
+Pafos|CY|34.78|32.43
+Limassol|CY|34.68|33.04
+Ancara|TR|39.93|32.86
+Esmirna|TR|38.42|27.14
+Antália|TR|36.90|30.70
+Göreme|TR|38.64|34.83
+Selçuk|TR|37.95|27.37
+Pamukkale|TR|37.92|29.12
+Bursa|TR|40.19|29.06
+Bodrum|TR|37.04|27.43
+Trebizonda|TR|41.00|39.72
+Konya|TR|37.87|32.49
+Tbilisi|GE|41.72|44.79
+Batumi|GE|41.65|41.64
+Kazbegi|GE|42.66|44.64
+Erevã|AM|40.18|44.51
+Baku|AZ|40.41|49.87
+Nóvossibirsk|RU|55.03|82.92|Asia/Novosibirsk
+Ecaterimburgo|RU|56.84|60.61|Asia/Yekaterinburg
+Níjni Novgorod|RU|56.33|44.00
+Cazã|RU|55.79|49.12
+Cheliabinsk|RU|55.16|61.40|Asia/Yekaterinburg
+Omsk|RU|54.99|73.37|Asia/Omsk
+Samara|RU|53.20|50.15|Europe/Samara
+Rostov do Don|RU|47.24|39.71
+Ufa|RU|54.74|55.97|Asia/Yekaterinburg
+Krasnoiarsk|RU|56.01|92.85|Asia/Krasnoyarsk
+Perm|RU|58.01|56.23|Asia/Yekaterinburg
+Vorónej|RU|51.66|39.20
+Volgogrado|RU|48.71|44.51|Europe/Volgograd
+Krasnodar|RU|45.04|38.98
+Sochi|RU|43.60|39.73
+Vladivostok|RU|43.12|131.89|Asia/Vladivostok
+Irkutsk|RU|52.29|104.30|Asia/Irkutsk
+Khabarovsk|RU|48.48|135.08|Asia/Vladivostok
+Múrmansk|RU|68.97|33.09
+Kaliningrado|RU|54.71|20.51|Europe/Kaliningrad
+Iakutsk|RU|62.03|129.73|Asia/Yakutsk
+Listvyanka|RU|51.85|104.87|Asia/Irkutsk
+Suzdal|RU|56.42|40.45
+Petropavlovsk-Kamchatski|RU|53.02|158.65|Asia/Kamchatka
+Guangzhou|CN|23.13|113.26
+Shenzhen|CN|22.54|114.06
+Chengdu|CN|30.57|104.07
+Tianjin|CN|39.34|117.36
+Wuhan|CN|30.59|114.31
+Chongqing|CN|29.56|106.55
+Nanquim|CN|32.06|118.80
+Hangzhou|CN|30.27|120.16
+Xi'an|CN|34.34|108.94
+Suzhou|CN|31.30|120.59
+Harbin|CN|45.80|126.53
+Shenyang|CN|41.80|123.43
+Dalian|CN|38.91|121.61
+Qingdao|CN|36.07|120.38
+Jinan|CN|36.65|117.12
+Zhengzhou|CN|34.75|113.62
+Changsha|CN|28.23|112.94
+Kunming|CN|25.04|102.71
+Xiamen|CN|24.48|118.09
+Fuzhou|CN|26.07|119.30
+Nanning|CN|22.82|108.32
+Guiyang|CN|26.65|106.63
+Hefei|CN|31.82|117.23
+Nanchang|CN|28.68|115.86
+Taiyuan|CN|37.87|112.55
+Lanzhou|CN|36.06|103.83
+Urumqi|CN|43.83|87.62|Asia/Urumqi
+Hohhot|CN|40.84|111.75
+Yinchuan|CN|38.49|106.23
+Xining|CN|36.62|101.78
+Haikou|CN|20.04|110.20
+Sanya|CN|18.25|109.51
+Guilin|CN|25.27|110.29
+Lijiang|CN|26.87|100.23
+Dali|CN|25.61|100.27
+Datong|CN|40.08|113.30
+Luoyang|CN|34.62|112.45
+Kaifeng|CN|34.80|114.31
+Pingyao|CN|37.20|112.18
+Zhangjiajie|CN|29.12|110.48
+Huangshan|CN|29.71|118.34
+Wuxi|CN|31.49|120.31
+Ningbo|CN|29.87|121.54
+Wenzhou|CN|28.00|120.70
+Dongguan|CN|23.02|113.75
+Foshan|CN|23.02|113.12
+Zhuhai|CN|22.27|113.58
+Changchun|CN|43.82|125.32
+Chengde|CN|40.95|117.96
+Hong Kong|HK|22.32|114.17
+Macau|MO|22.20|113.55
+Mumbai|IN|19.08|72.88
+Bangalore|IN|12.97|77.59
+Hyderabad|IN|17.39|78.49
+Ahmedabad|IN|23.02|72.57
+Chennai|IN|13.08|80.27
+Calcutá|IN|22.57|88.36
+Surat|IN|21.17|72.83
+Pune|IN|18.52|73.86
+Lucknow|IN|26.85|80.95
+Kanpur|IN|26.45|80.33
+Nagpur|IN|21.15|79.09
+Indore|IN|22.72|75.86
+Bhopal|IN|23.26|77.41
+Visakhapatnam|IN|17.69|83.22
+Patna|IN|25.59|85.14
+Vadodara|IN|22.31|73.19
+Ludhiana|IN|30.90|75.86
+Nashik|IN|20.00|73.79
+Varanasi|IN|25.32|82.97
+Amritsar|IN|31.63|74.87
+Srinagar|IN|34.08|74.80
+Chandigarh|IN|30.73|76.78
+Coimbatore|IN|11.02|76.96
+Kochi|IN|9.93|76.27
+Thiruvananthapuram|IN|8.52|76.94
+Mysore|IN|12.30|76.64
+Panaji|IN|15.50|73.83
+Udaipur|IN|24.59|73.71
+Jodhpur|IN|26.24|73.02
+Jaisalmer|IN|26.92|70.91
+Rishikesh|IN|30.09|78.27
+Haridwar|IN|29.95|78.16
+Shimla|IN|31.10|77.17
+Darjeeling|IN|27.04|88.26
+Gangtok|IN|27.33|88.61
+Guwahati|IN|26.14|91.74
+Bhubaneswar|IN|20.30|85.82
+Puri|IN|19.81|85.83
+Madurai|IN|9.93|78.12
+Pondicherry|IN|11.93|79.83
+Hampi|IN|15.34|76.46
+Khajuraho|IN|24.83|79.92
+Ranchi|IN|23.34|85.31
+Raipur|IN|21.25|81.63
+Dehradun|IN|30.32|78.03
+Leh|IN|34.16|77.58
+Prayagraj|IN|25.44|81.85
+Mangalore|IN|12.91|74.86
+Yokohama|JP|35.44|139.64
+Osaka|JP|34.69|135.50
+Nagoia|JP|35.18|136.91
+Sapporo|JP|43.06|141.35
+Kobe|JP|34.69|135.20
+Fukuoka|JP|33.59|130.40
+Kawasaki|JP|35.53|139.70
+Hiroshima|JP|34.39|132.45
+Sendai|JP|38.27|140.87
+Nara|JP|34.69|135.80
+Nagasaki|JP|32.75|129.88
+Kanazawa|JP|36.56|136.66
+Nikkō|JP|36.75|139.60
+Hakone|JP|35.23|139.11
+Kamakura|JP|35.32|139.55
+Naha|JP|26.21|127.68
+Matsumoto|JP|36.24|137.97
+Himeji|JP|34.82|134.69
+Takayama|JP|36.14|137.25
+Kumamoto|JP|32.80|130.71
+Kagoshima|JP|31.60|130.56
+Niigata|JP|37.92|139.04
+Hakodate|JP|41.77|140.73
+Matsuyama|JP|33.84|132.77
+Busan|KR|35.18|129.08
+Incheon|KR|37.46|126.71
+Daegu|KR|35.87|128.60
+Jeju|KR|33.50|126.53
+Gyeongju|KR|35.86|129.22
+Daejeon|KR|36.35|127.38
+Gwangju|KR|35.16|126.85
+Suwon|KR|37.26|127.03
+Jeonju|KR|35.82|127.15
+Kaohsiung|TW|22.63|120.30
+Taichung|TW|24.15|120.67
+Tainan|TW|22.99|120.21
+Hualien|TW|23.98|121.60
+Jiufen|TW|25.11|121.85
+Ulan Bator|MN|47.89|106.91
+Almaty|KZ|43.24|76.89
+Astana|KZ|51.17|71.43
+Shymkent|KZ|42.32|69.59
+Tashkent|UZ|41.30|69.24
+Bucara|UZ|39.77|64.42
+Khiva|UZ|41.38|60.36
+Bisqueque|KG|42.87|74.59
+Karakol|KG|42.49|78.39
+Duchambe|TJ|38.56|68.79
+Asgabate|TM|37.96|58.33
+Cabul|AF|34.53|69.17
+Karachi|PK|24.86|67.01
+Lahore|PK|31.55|74.34
+Islamabad|PK|33.68|73.05
+Faisalabad|PK|31.42|73.08
+Peshawar|PK|34.01|71.58
+Multan|PK|30.20|71.47
+Quetta|PK|30.18|66.99
+Karimabad|PK|36.32|74.66
+Skardu|PK|35.30|75.63
+Daca|BD|23.81|90.41
+Chittagong|BD|22.36|91.78
+Cox's Bazar|BD|21.43|91.98
+Khulna|BD|22.82|89.55
+Colombo|LK|6.93|79.86
+Kandy|LK|7.29|80.63
+Galle|LK|6.03|80.22
+Sigiriya|LK|7.96|80.76
+Ella|LK|6.87|81.05
+Pokhara|NP|28.21|83.99
+Timbu|BT|27.47|89.64
+Malé|MV|4.18|73.51
+Yangon|MM|16.84|96.17
+Mandalay|MM|21.97|96.08
+Bagan|MM|21.17|94.86
+Naypyidaw|MM|19.76|96.08
+Chiang Mai|TH|18.79|98.98
+Phuket|TH|7.88|98.39
+Pattaya|TH|12.93|100.88
+Ayutthaya|TH|14.35|100.58
+Krabi|TH|8.09|98.91
+Ko Samui|TH|9.51|100.01
+Chiang Rai|TH|19.91|99.83
+Sukhothai|TH|17.01|99.82
+Hua Hin|TH|12.57|99.96
+Hanói|VN|21.03|105.85
+Ho Chi Minh|VN|10.82|106.63
+Da Nang|VN|16.05|108.20
+Hoi An|VN|15.88|108.34
+Huế|VN|16.46|107.59
+Nha Trang|VN|12.24|109.19
+Sapa|VN|22.34|103.84
+Da Lat|VN|11.94|108.44
+Phu Quoc|VN|10.23|103.96
+Phnom Penh|KH|11.56|104.93
+Sihanoukville|KH|10.63|103.50
+Vientiane|LA|17.97|102.60
+Luang Prabang|LA|19.89|102.13
+Vang Vieng|LA|18.92|102.45
+George Town (Malásia)|MY|5.41|100.34
+Malaca|MY|2.19|102.25
+Kota Kinabalu|MY|5.98|116.07|Asia/Kuching
+Kuching|MY|1.55|110.35|Asia/Kuching
+Langkawi|MY|6.35|99.80
+Johor Bahru|MY|1.49|103.74
+Bandar Seri Begawan|BN|4.89|114.94
+Jacarta|ID|-6.21|106.85
+Surabaya|ID|-7.25|112.75
+Bandung|ID|-6.92|107.61
+Medan|ID|3.60|98.67
+Yogyakarta|ID|-7.80|110.36
+Denpasar|ID|-8.65|115.22|Asia/Makassar
+Ubud|ID|-8.51|115.26|Asia/Makassar
+Makassar|ID|-5.15|119.43|Asia/Makassar
+Manado|ID|1.47|124.84|Asia/Makassar
+Labuan Bajo|ID|-8.49|119.88|Asia/Makassar
+Mataram|ID|-8.58|116.12|Asia/Makassar
+Palembang|ID|-2.98|104.76
+Banda Aceh|ID|5.55|95.32
+Jayapura|ID|-2.53|140.72|Asia/Jayapura
+Manila|PH|14.60|120.98
+Quezon City|PH|14.68|121.04
+Cebu|PH|10.32|123.89
+Davao|PH|7.07|125.61
+Puerto Princesa|PH|9.74|118.74
+El Nido|PH|11.18|119.40
+Baguio|PH|16.40|120.59
+Banaue|PH|16.93|121.06
+Vigan|PH|17.57|120.39
+Siargao|PH|9.85|126.05
+Abu Dhabi|AE|24.45|54.38
+Sharjah|AE|25.35|55.40
+Doha|QA|25.29|51.53
+Manama|BH|26.23|50.59
+Cidade do Kuwait|KW|29.38|47.99
+Riade|SA|24.71|46.68
+Jidá|SA|21.54|39.17
+Meca|SA|21.39|39.86
+Medina|SA|24.47|39.61
+AlUla|SA|26.61|37.92
+Mascate|OM|23.59|58.41
+Salalá|OM|17.02|54.09
+Amã|JO|31.95|35.93
+Aqaba|JO|29.53|35.01
+Wadi Rum|JO|29.57|35.42
+Beirute|LB|33.89|35.50
+Baalbek|LB|34.01|36.21
+Biblos|LB|34.12|35.65
+Bagdá|IQ|33.32|44.37
+Erbil|IQ|36.19|44.01
+Teerã|IR|35.69|51.39
+Shiraz|IR|29.59|52.58
+Mashhad|IR|36.30|59.60
+Tabriz|IR|38.08|46.29
+Yazd|IR|31.90|54.37
+Persépolis|IR|29.93|52.89
+Alexandria|EG|31.20|29.92
+Luxor|EG|25.69|32.64
+Assuã|EG|24.09|32.90
+Sharm el-Sheikh|EG|27.91|34.33
+Hurghada|EG|27.26|33.81
+Abu Simbel|EG|22.34|31.63
+Sousse|TN|35.83|10.64
+Houmt Souk|TN|33.88|10.86
+Cairuão|TN|35.68|10.10
+Argel|DZ|36.75|3.06
+Orã|DZ|35.70|-0.63
+Constantina|DZ|36.37|6.61
+Tamanrasset|DZ|22.79|5.52
+Casablanca|MA|33.57|-7.59
+Rabat|MA|34.02|-6.84
+Fez|MA|34.03|-5.00
+Tânger|MA|35.76|-5.83
+Chefchaouen|MA|35.17|-5.27
+Essaouira|MA|31.51|-9.77
+Agadir|MA|30.43|-9.60
+Ouarzazate|MA|30.92|-6.89
+Merzouga|MA|31.10|-4.01
+Nouakchott|MR|18.08|-15.97
+Dacar|SN|14.72|-17.47
+Saint-Louis|SN|16.03|-16.50
+Banjul|GM|13.45|-16.58
+Bamaco|ML|12.64|-8.00
+Tombuctu|ML|16.77|-3.01
+Conacri|GN|9.64|-13.58
+Freetown|SL|8.48|-13.23
+Monróvia|LR|6.30|-10.80
+Abidjan|CI|5.36|-4.01
+Yamoussoukro|CI|6.83|-5.29
+Acra|GH|5.60|-0.19
+Kumasi|GH|6.69|-1.62
+Cape Coast|GH|5.11|-1.25
+Lomé|TG|6.17|1.23
+Cotonou|BJ|6.37|2.39
+Uidá|BJ|6.37|2.09
+Uagadugu|BF|12.37|-1.52
+Niamey|NE|13.51|2.11
+Abuja|NG|9.08|7.40
+Kano|NG|12.00|8.52
+Ibadan|NG|7.38|3.95
+Port Harcourt|NG|4.82|7.05
+Benin City|NG|6.34|5.63
+Iaundé|CM|3.85|11.50
+Duala|CM|4.05|9.77
+Jamena|TD|12.13|15.06
+Libreville|GA|0.42|9.47
+Brazzaville|CG|-4.27|15.28
+Kinshasa|CD|-4.44|15.27
+Lubumbashi|CD|-11.66|27.48|Africa/Lubumbashi
+Goma|CD|-1.68|29.22|Africa/Lubumbashi
+Luanda|AO|-8.84|13.23
+Benguela|AO|-12.58|13.41
+Lubango|AO|-14.92|13.49
+Adis Abeba|ET|9.03|38.74
+Axum|ET|14.12|38.72
+Gondar|ET|12.60|37.47
+Asmara|ER|15.34|38.93
+Djibuti|DJ|11.59|43.15
+Mogadíscio|SO|2.05|45.32
+Nairóbi|KE|-1.29|36.82
+Mombaça|KE|-4.04|39.67
+Amboseli|KE|-2.64|37.25
+Lamu|KE|-2.27|40.90
+Campala|UG|0.35|32.58
+Jinja|UG|0.42|33.20
+Kigali|RW|-1.95|30.06
+Bujumbura|BI|-3.38|29.36
+Dar es Salaam|TZ|-6.79|39.21
+Dodoma|TZ|-6.16|35.75
+Zanzibar|TZ|-6.16|39.19
+Arusha|TZ|-3.39|36.68
+Moshi|TZ|-3.35|37.34
+Lilongue|MW|-13.96|33.77
+Lusaca|ZM|-15.39|28.32
+Livingstone|ZM|-17.85|25.86
+Harare|ZW|-17.83|31.05
+Bulawayo|ZW|-20.15|28.58
+Maputo|MZ|-25.97|32.57
+Beira|MZ|-19.84|34.84
+Ilha de Moçambique|MZ|-15.04|40.73
+Vilankulo|MZ|-22.00|35.31
+Antananarivo|MG|-18.88|47.51
+Nosy Be|MG|-13.31|48.26
+Port Louis|MU|-20.16|57.50
+Gaborone|BW|-24.65|25.91
+Maun|BW|-19.99|23.42
+Kasane|BW|-17.80|25.15
+Windhoek|NA|-22.56|17.07
+Swakopmund|NA|-22.68|14.53
+Walvis Bay|NA|-22.96|14.51
+Etosha|NA|-19.18|15.92
+Joanesburgo|ZA|-26.20|28.05
+Durban|ZA|-29.86|31.02
+Pretória|ZA|-25.75|28.19
+Gqeberha|ZA|-33.96|25.60
+Bloemfontein|ZA|-29.12|26.21
+Stellenbosch|ZA|-33.93|18.86
+Skukuza|ZA|-24.99|31.59
+Knysna|ZA|-34.04|23.05
+Hermanus|ZA|-34.42|19.24
+Maseru|LS|-29.31|27.48
+Mbabane|SZ|-26.32|31.14
+Praia|CV|14.93|-23.51
+Mindelo|CV|16.89|-24.98
+São Tomé|ST|0.34|6.73
+Bissau|GW|11.86|-15.60
+Cartum|SD|15.50|32.56
+Juba|SS|4.85|31.58
+Tórshavn|FO|62.01|-6.77
+Oranjestad|AW|12.52|-70.04
+Suva|FJ|-18.14|178.44
+Nadi|FJ|-17.80|177.42
+Port Moresby|PG|-9.44|147.18
+Apia|WS|-13.83|-171.76
+Nuku'alofa|TO|-21.14|-175.20
+Port Vila|VU|-17.73|168.32
+Papeete|PF|-17.54|-149.57
+Bora Bora|PF|-16.50|-151.74|Pacific/Tahiti
+Numeá|NC|-22.28|166.46
+Rarotonga|CK|-21.23|-159.78
+Koror|PW|7.34|134.48
+Hagåtña|GU|13.48|144.75
+Honiara|SB|-9.43|159.95
+Melbourne|AU|-37.81|144.96|Australia/Melbourne
+Brisbane|AU|-27.47|153.03|Australia/Brisbane
+Perth|AU|-31.95|115.86|Australia/Perth
+Adelaide|AU|-34.93|138.60|Australia/Adelaide
+Camberra|AU|-35.28|149.13
+Gold Coast|AU|-28.02|153.40|Australia/Brisbane
+Hobart|AU|-42.88|147.33|Australia/Hobart
+Darwin|AU|-12.46|130.84|Australia/Darwin
+Cairns|AU|-16.92|145.77|Australia/Brisbane
+Uluru|AU|-25.34|131.04|Australia/Darwin
+Wellington|NZ|-41.29|174.78
+Christchurch|NZ|-43.53|172.64
+Queenstown|NZ|-45.03|168.66
+Rotorua|NZ|-38.14|176.25
+Dunedin|NZ|-45.87|170.50
+Mérida (Venezuela)|VE|8.59|-71.16
+San José|CR|9.93|-84.08
+Granada (Espanha)|ES|37.18|-3.60
+Lagos (Nigéria)|NG|6.52|3.38
+Victoria (Seicheles)|SC|-4.62|55.45
+São Bernardo do Campo|BR|-23.6914|-46.5646|America/Sao_Paulo
+Santo André|BR|-23.6737|-46.5432|America/Sao_Paulo
+Osasco|BR|-23.5329|-46.7917|America/Sao_Paulo
+Jundiaí|BR|-23.1864|-46.8842|America/Sao_Paulo
+São José do Rio Preto|BR|-20.8197|-49.3794|America/Sao_Paulo
+Presidente Prudente|BR|-22.1256|-51.3889|America/Sao_Paulo
+São Carlos|BR|-22.0087|-47.8909|America/Sao_Paulo
+Taubaté|BR|-23.0204|-45.5558|America/Sao_Paulo
+Contagem|BR|-19.9319|-44.0539|America/Sao_Paulo
+Uberaba|BR|-19.7472|-47.9319|America/Sao_Paulo
+Governador Valadares|BR|-18.8512|-41.9494|America/Sao_Paulo
+Poços de Caldas|BR|-21.7878|-46.5617|America/Sao_Paulo
+Varginha|BR|-21.5514|-45.4303|America/Sao_Paulo
+Campos dos Goytacazes|BR|-21.7545|-41.3244|America/Sao_Paulo
+Volta Redonda|BR|-22.5231|-44.1040|America/Sao_Paulo
+Nova Iguaçu|BR|-22.7592|-43.4511|America/Sao_Paulo
+Duque de Caxias|BR|-22.7856|-43.3117|America/Sao_Paulo
+São Gonçalo|BR|-22.8269|-43.0634|America/Sao_Paulo
+Cabo Frio|BR|-22.8894|-42.0286|America/Sao_Paulo
+Angra dos Reis|BR|-23.0067|-44.3181|America/Sao_Paulo
+Feira de Santana|BR|-12.2664|-38.9663|America/Bahia
+Vitória da Conquista|BR|-14.8615|-40.8442|America/Bahia
+Ilhéus|BR|-14.7889|-39.0494|America/Bahia
+Caruaru|BR|-8.2760|-35.9819|America/Recife
+Petrolina|BR|-9.3891|-40.5027|America/Recife
+Jaboatão dos Guararapes|BR|-8.1130|-35.0148|America/Recife
+Campina Grande|BR|-7.2306|-35.8811|America/Fortaleza
+Mossoró|BR|-5.1878|-37.3441|America/Fortaleza
+Juazeiro do Norte|BR|-7.2130|-39.3153|America/Fortaleza
+Sobral|BR|-3.6890|-40.3482|America/Fortaleza
+Imperatriz|BR|-5.5185|-47.4777|America/Fortaleza
+Ananindeua|BR|-1.3656|-48.3722|America/Belem
+Marabá|BR|-5.3686|-49.1178|America/Belem
+Palmas do Tocantins|BR|-10.2128|-48.3603|America/Araguaina
+Anápolis|BR|-16.3281|-48.9534|America/Sao_Paulo
+Aparecida de Goiânia|BR|-16.8233|-49.2439|America/Sao_Paulo
+Várzea Grande|BR|-15.6467|-56.1325|America/Cuiaba
+Rondonópolis|BR|-16.4673|-54.6372|America/Cuiaba
+Dourados|BR|-22.2231|-54.8120|America/Campo_Grande
+Corumbá|BR|-19.0078|-57.6510|America/Campo_Grande
+Cruzeiro do Sul|BR|-7.6277|-72.6756|America/Rio_Branco
+Ponta Grossa|BR|-25.0950|-50.1619|America/Sao_Paulo
+São José dos Pinhais|BR|-25.5348|-49.2064|America/Sao_Paulo
+Paranaguá|BR|-25.5205|-48.5095|America/Sao_Paulo
+Chapecó|BR|-27.1004|-52.6152|America/Sao_Paulo
+Itajaí|BR|-26.9078|-48.6619|America/Sao_Paulo
+Criciúma|BR|-28.6775|-49.3697|America/Sao_Paulo
+Canoas|BR|-29.9178|-51.1839|America/Sao_Paulo
+Passo Fundo|BR|-28.2628|-52.4067|America/Sao_Paulo
+Fort Worth|US|32.7555|-97.3308|America/Chicago
+El Paso|US|31.7619|-106.4850|America/Denver
+Fresno|US|36.7378|-119.7871|America/Los_Angeles
+Long Beach|US|33.7701|-118.1937|America/Los_Angeles
+Oakland|US|37.8044|-122.2712|America/Los_Angeles
+Bakersfield|US|35.3733|-119.0187|America/Los_Angeles
+Spokane|US|47.6588|-117.4260|America/Los_Angeles
+Tacoma|US|47.2529|-122.4443|America/Los_Angeles
+Eugene|US|44.0521|-123.0868|America/Los_Angeles
+Reno|US|39.5296|-119.8138|America/Los_Angeles
+Colorado Springs|US|38.8339|-104.8214|America/Denver
+Fort Collins|US|40.5853|-105.0844|America/Denver
+Mesa|US|33.4152|-111.8315|America/Phoenix
+Flagstaff|US|35.1983|-111.6513|America/Phoenix
+Billings|US|45.7833|-108.5007|America/Denver
+Fargo|US|46.8772|-96.7898|America/Chicago
+Sioux Falls|US|43.5446|-96.7311|America/Chicago
+Des Moines|US|41.5868|-93.6250|America/Chicago
+Madison|US|43.0731|-89.4012|America/Chicago
+Little Rock|US|34.7465|-92.2896|America/Chicago
+Baton Rouge|US|30.4515|-91.1871|America/Chicago
+Birmingham (Alabama)|US|33.5186|-86.8104|America/Chicago
+Jackson (Mississippi)|US|32.2988|-90.1848|America/Chicago
+Corpus Christi|US|27.8006|-97.3964|America/Chicago
+Tulsa|US|36.1540|-95.9928|America/Chicago
+Wichita|US|37.6872|-97.3301|America/Chicago
+Lincoln|US|40.8136|-96.7026|America/Chicago
+Grand Rapids|US|42.9634|-85.6681|America/Detroit
+Toledo|US|41.6528|-83.5379|America/New_York
+Lexington|US|38.0406|-84.5037|America/New_York
+Knoxville|US|35.9606|-83.9207|America/New_York
+Chattanooga|US|35.0456|-85.3097|America/New_York
+Greenville|US|34.8526|-82.3940|America/New_York
+Columbia|US|34.0007|-81.0348|America/New_York
+Norfolk|US|36.8508|-76.2859|America/New_York
+Virginia Beach|US|36.8529|-75.9780|America/New_York
+Asheville|US|35.5951|-82.5515|America/New_York
+Tallahassee|US|30.4383|-84.2807|America/New_York
+Fort Lauderdale|US|26.1224|-80.1373|America/New_York
+St. Petersburg|US|27.7676|-82.6403|America/New_York
+Daytona Beach|US|29.2108|-81.0228|America/New_York
+Providence|US|41.8240|-71.4128|America/New_York
+Hartford|US|41.7658|-72.6734|America/New_York
+Albany|US|42.6526|-73.7562|America/New_York
+Rochester|US|43.1566|-77.6088|America/New_York
+Syracuse|US|43.0481|-76.1474|America/New_York
+Portland (Maine)|US|43.6591|-70.2568|America/New_York
+Cambridge (Massachusetts)|US|42.3736|-71.1097|America/New_York
+Juneau|US|58.3019|-134.4197|America/Juneau
+Mississauga|CA|43.5890|-79.6441|America/Toronto
+Hamilton|CA|43.2557|-79.8711|America/Toronto
+London (Canadá)|CA|42.9849|-81.2453|America/Toronto
+Windsor|CA|42.3149|-83.0364|America/Toronto
+Niagara Falls|CA|43.0896|-79.0849|America/Toronto
+Kingston (Canadá)|CA|44.2312|-76.4860|America/Toronto
+Thunder Bay|CA|48.3809|-89.2477|America/Toronto
+Laval|CA|45.6066|-73.7124|America/Toronto
+Sherbrooke|CA|45.4042|-71.8929|America/Toronto
+Regina|CA|50.4452|-104.6189|America/Regina
+Lethbridge|CA|49.6956|-112.8451|America/Edmonton
+Kelowna|CA|49.8880|-119.4960|America/Vancouver
+Nanaimo|CA|49.1659|-123.9401|America/Vancouver
+Fredericton|CA|45.9636|-66.6431|America/Moncton
+Moncton|CA|46.0878|-64.7782|America/Moncton
+Charlottetown|CA|46.2382|-63.1311|America/Halifax
+Yellowknife|CA|62.4540|-114.3718|America/Yellowknife
+Zapopan|MX|20.7236|-103.3848|America/Mexico_City
+Toluca|MX|19.2826|-99.6557|America/Mexico_City
+Aguascalientes|MX|21.8853|-102.2916|America/Mexico_City
+San Luis Potosí|MX|22.1565|-100.9855|America/Mexico_City
+Saltillo|MX|25.4232|-100.9924|America/Monterrey
+Torreón|MX|25.5428|-103.4068|America/Monterrey
+Ciudad Juárez|MX|31.6904|-106.4245|America/Ciudad_Juarez
+Hermosillo|MX|29.0729|-110.9559|America/Hermosillo
+Culiacán|MX|24.8091|-107.3940|America/Mazatlan
+La Paz (México)|MX|24.1426|-110.3128|America/Mazatlan
+Mexicali|MX|32.6245|-115.4523|America/Tijuana
+Ensenada|MX|31.8667|-116.5964|America/Tijuana
+Durango|MX|24.0277|-104.6532|America/Monterrey
+Zacatecas|MX|22.7709|-102.5832|America/Mexico_City
+Cuernavaca|MX|18.9242|-99.2216|America/Mexico_City
+Pachuca|MX|20.1011|-98.7591|America/Mexico_City
+Villahermosa|MX|17.9892|-92.9475|America/Mexico_City
+Tuxtla Gutiérrez|MX|16.7528|-93.1152|America/Mexico_City
+Campeche|MX|19.8301|-90.5349|America/Merida
+Cozumel|MX|20.4230|-86.9223|America/Cancun
+Isla Mujeres|MX|21.2316|-86.7311|America/Cancun
+Xalapa|MX|19.5438|-96.9102|America/Mexico_City
+Cúcuta|CO|7.8939|-72.5078|America/Bogota
+Pereira|CO|4.8133|-75.6961|America/Bogota
+Manizales|CO|5.0703|-75.5138|America/Bogota
+Ibagué|CO|4.4389|-75.2322|America/Bogota
+Villavicencio|CO|4.1420|-73.6266|America/Bogota
+Pasto|CO|1.2136|-77.2811|America/Bogota
+Popayán|CO|2.4448|-76.6147|America/Bogota
+Montería|CO|8.7480|-75.8814|America/Bogota
+Valledupar|CO|10.4631|-73.2532|America/Bogota
+Leticia|CO|-4.2153|-69.9406|America/Bogota
+Villa de Leyva|CO|5.6331|-73.5272|America/Bogota
+Piura|PE|-5.1945|-80.6328|America/Lima
+Chiclayo|PE|-6.7714|-79.8409|America/Lima
+Cajamarca|PE|-7.1638|-78.5003|America/Lima
+Huancayo|PE|-12.0651|-75.2049|America/Lima
+Ayacucho|PE|-13.1588|-74.2236|America/Lima
+Tacna|PE|-18.0146|-70.2536|America/Lima
+Pucallpa|PE|-8.3791|-74.5539|America/Lima
+Puerto Maldonado|PE|-12.5933|-69.1891|America/Lima
+Bahía Blanca|AR|-38.7196|-62.2724|America/Argentina/Buenos_Aires
+Santa Fe|AR|-31.6333|-60.7000|America/Argentina/Cordoba
+Paraná|AR|-31.7333|-60.5297|America/Argentina/Cordoba
+Corrientes|AR|-27.4692|-58.8306|America/Argentina/Cordoba
+Posadas|AR|-27.3671|-55.8961|America/Argentina/Cordoba
+Resistencia|AR|-27.4606|-58.9839|America/Argentina/Cordoba
+San Juan (Argentina)|AR|-31.5375|-68.5364|America/Argentina/San_Juan
+San Luis|AR|-33.2950|-66.3356|America/Argentina/San_Luis
+Neuquén|AR|-38.9516|-68.0591|America/Argentina/Salta
+Comodoro Rivadavia|AR|-45.8641|-67.4966|America/Argentina/Buenos_Aires
+Río Gallegos|AR|-51.6230|-69.2168|America/Argentina/Rio_Gallegos
+San Salvador de Jujuy|AR|-24.1858|-65.2995|America/Argentina/Jujuy
+Puerto Madryn|AR|-42.7692|-65.0385|America/Argentina/Buenos_Aires
+Antofagasta|CL|-23.6509|-70.3975|America/Santiago
+Iquique|CL|-20.2307|-70.1357|America/Santiago
+Arica|CL|-18.4783|-70.3126|America/Santiago
+La Serena|CL|-29.9027|-71.2520|America/Santiago
+Temuco|CL|-38.7359|-72.5904|America/Santiago
+Valdivia|CL|-39.8142|-73.2459|America/Santiago
+Puerto Montt|CL|-41.4693|-72.9424|America/Santiago
+Rancagua|CL|-34.1708|-70.7444|America/Santiago
+Talca|CL|-35.4264|-71.6554|America/Santiago
+Coyhaique|CL|-45.5712|-72.0685|America/Santiago
+Castro|CL|-42.4720|-73.7640|America/Santiago
+Maracay|VE|10.2469|-67.5958|America/Caracas
+Valencia (Venezuela)|VE|10.1620|-68.0077|America/Caracas
+Barquisimeto|VE|10.0678|-69.3467|America/Caracas
+Ciudad Guayana|VE|8.3596|-62.6510|America/Caracas
+Puerto La Cruz|VE|10.2134|-64.6305|America/Caracas
+Porlamar|VE|10.9577|-63.8697|America/Caracas
+Manta|EC|-0.9677|-80.7089|America/Guayaquil
+Loja|EC|-3.9931|-79.2042|America/Guayaquil
+Montañita|EC|-1.8267|-80.7517|America/Guayaquil
+Oruro|BO|-17.9647|-67.1060|America/La_Paz
+Potosí|BO|-19.5836|-65.7531|America/La_Paz
+Tarija|BO|-21.5355|-64.7296|America/La_Paz
+Trinidad (Bolívia)|BO|-14.8333|-64.9000|America/La_Paz
+Encarnación|PY|-27.3306|-55.8667|America/Asuncion
+Salto|UY|-31.3833|-57.9667|America/Montevideo
+Paysandú|UY|-32.3214|-58.0756|America/Montevideo
+San Pedro Sula|HN|15.5042|-88.0250|America/Tegucigalpa
+La Ceiba|HN|15.7833|-86.8000|America/Tegucigalpa
+Quetzaltenango|GT|14.8347|-91.5181|America/Guatemala
+Santa Ana|SV|13.9942|-89.5597|America/El_Salvador
+León (Nicarágua)|NI|12.4379|-86.8780|America/Managua
+Liberia|CR|10.6350|-85.4377|America/Costa_Rica
+Puntarenas|CR|9.9763|-84.8384|America/Costa_Rica
+David|PA|8.4273|-82.4308|America/Panama
+Colón|PA|9.3592|-79.9014|America/Panama
+Camagüey|CU|21.3808|-77.9169|America/Havana
+Holguín|CU|20.8872|-76.2631|America/Havana
+Santa Clara|CU|22.4069|-79.9647|America/Havana
+Cienfuegos|CU|22.1461|-80.4364|America/Havana
+Viñales|CU|22.6167|-83.7167|America/Havana
+Santiago de los Caballeros|DO|19.4517|-70.6970|America/Santo_Domingo
+Puerto Plata|DO|19.7934|-70.6884|America/Santo_Domingo
+La Romana|DO|18.4273|-68.9728|America/Santo_Domingo
+Ocho Rios|JM|18.4076|-77.1031|America/Jamaica
+Ponce|PR|18.0111|-66.6141|America/Puerto_Rico
+Mayagüez|PR|18.2013|-67.1452|America/Puerto_Rico
+Willemstad|CW|12.1696|-68.9900|America/Curacao
+George Town|KY|19.2869|-81.3674|America/Cayman
+Hamilton (Bermudas)|BM|32.2949|-64.7814|Atlantic/Bermuda
+Fort-de-France|MQ|14.6161|-61.0588|America/Martinique
+Pointe-à-Pitre|GP|16.2411|-61.5330|America/Guadeloupe
+Castries|LC|14.0101|-60.9875|America/St_Lucia
+Saint John's|AG|17.1274|-61.8468|America/Antigua
+Belmopan|BZ|17.2510|-88.7590|America/Belize
+Providenciales|TC|21.7737|-72.2657|America/Grand_Turk
+Charlotte Amalie|VI|18.3419|-64.9307|America/St_Thomas
+Stanley|FK|-51.6977|-57.8512|Atlantic/Stanley
+Alicante|ES|38.3452|-0.4810|Europe/Madrid
+Múrcia|ES|37.9922|-1.1307|Europe/Madrid
+Valladolid|ES|41.6523|-4.7245|Europe/Madrid
+Vigo|ES|42.2406|-8.7207|Europe/Madrid
+A Corunha|ES|43.3623|-8.4115|Europe/Madrid
+Gijón|ES|43.5322|-5.6611|Europe/Madrid
+Oviedo|ES|43.3614|-5.8593|Europe/Madrid
+Almería|ES|36.8340|-2.4637|Europe/Madrid
+Burgos|ES|42.3439|-3.6969|Europe/Madrid
+Logroño|ES|42.4627|-2.4450|Europe/Madrid
+Tarragona|ES|41.1189|1.2445|Europe/Madrid
+Girona|ES|41.9794|2.8214|Europe/Madrid
+Vitória-Gasteiz|ES|42.8467|-2.6716|Europe/Madrid
+Jerez de la Frontera|ES|36.6850|-6.1261|Europe/Madrid
+Marbella|ES|36.5100|-4.8825|Europe/Madrid
+Elche|ES|38.2699|-0.7126|Europe/Madrid
+Cartagena (Espanha)|ES|37.6257|-0.9966|Europe/Madrid
+Mahón|ES|39.8885|4.2658|Europe/Madrid
+Badajoz|ES|38.8794|-6.9707|Europe/Madrid
+Setúbal|PT|38.5244|-8.8882|Europe/Lisbon
+Viseu|PT|40.6566|-7.9125|Europe/Lisbon
+Leiria|PT|39.7437|-8.8071|Europe/Lisbon
+Viana do Castelo|PT|41.6918|-8.8345|Europe/Lisbon
+Portimão|PT|37.1386|-8.5376|Europe/Lisbon
+Fátima|PT|39.6167|-8.6500|Europe/Lisbon
+Bragança|PT|41.8058|-6.7572|Europe/Lisbon
+Castelo Branco|PT|39.8222|-7.4909|Europe/Lisbon
+Saint-Étienne|FR|45.4397|4.3872|Europe/Paris
+Grenoble|FR|45.1885|5.7245|Europe/Paris
+Toulon|FR|43.1242|5.9280|Europe/Paris
+Le Havre|FR|49.4944|0.1079|Europe/Paris
+Angers|FR|47.4784|-0.5632|Europe/Paris
+Tours|FR|47.3941|0.6848|Europe/Paris
+Orléans|FR|47.9029|1.9093|Europe/Paris
+Metz|FR|49.1193|6.1757|Europe/Paris
+Nancy|FR|48.6921|6.1844|Europe/Paris
+Clermont-Ferrand|FR|45.7772|3.0870|Europe/Paris
+Limoges|FR|45.8336|1.2611|Europe/Paris
+Poitiers|FR|46.5802|0.3404|Europe/Paris
+Caen|FR|49.1829|-0.3707|Europe/Paris
+Perpignan|FR|42.6887|2.8948|Europe/Paris
+Ajaccio|FR|41.9192|8.7386|Europe/Paris
+Bastia|FR|42.6977|9.4509|Europe/Paris
+La Rochelle|FR|46.1603|-1.1511|Europe/Paris
+Brest|FR|48.3904|-4.4861|Europe/Paris
+Nîmes|FR|43.8367|4.3601|Europe/Paris
+Besançon|FR|47.2378|6.0241|Europe/Paris
+Lourdes|FR|43.0942|-0.0450|Europe/Paris
+Ancona|IT|43.6158|13.5189|Europe/Rome
+Bréscia|IT|45.5416|10.2118|Europe/Rome
+Parma|IT|44.8015|10.3279|Europe/Rome
+Módena|IT|44.6471|10.9252|Europe/Rome
+Ravena|IT|44.4184|12.2035|Europe/Rome
+Rimini|IT|44.0678|12.5695|Europe/Rome
+Vicenza|IT|45.5455|11.5354|Europe/Rome
+Údine|IT|46.0711|13.2346|Europe/Rome
+Trento|IT|46.0748|11.1217|Europe/Rome
+Bolzano|IT|46.4983|11.3548|Europe/Rome
+Salerno|IT|40.6824|14.7681|Europe/Rome
+Taranto|IT|40.4644|17.2470|Europe/Rome
+Reggio Calabria|IT|38.1113|15.6619|Europe/Rome
+Messina|IT|38.1938|15.5540|Europe/Rome
+Sassari|IT|40.7259|8.5557|Europe/Rome
+Pescara|IT|42.4618|14.2161|Europe/Rome
+Livorno|IT|43.5485|10.3106|Europe/Rome
+Ferrara|IT|44.8381|11.6198|Europe/Rome
+Lucca|IT|43.8430|10.5027|Europe/Rome
+Mântua|IT|45.1564|10.7914|Europe/Rome
+Aosta|IT|45.7376|7.3154|Europe/Rome
+Duisburg|DE|51.4344|6.7623|Europe/Berlin
+Bochum|DE|51.4818|7.2162|Europe/Berlin
+Wuppertal|DE|51.2562|7.1508|Europe/Berlin
+Bielefeld|DE|52.0302|8.5325|Europe/Berlin
+Münster|DE|51.9607|7.6261|Europe/Berlin
+Karlsruhe|DE|49.0069|8.4037|Europe/Berlin
+Mannheim|DE|49.4875|8.4660|Europe/Berlin
+Augsburgo|DE|48.3705|10.8978|Europe/Berlin
+Wiesbaden|DE|50.0782|8.2398|Europe/Berlin
+Braunschweig|DE|52.2689|10.5268|Europe/Berlin
+Kiel|DE|54.3233|10.1228|Europe/Berlin
+Chemnitz|DE|50.8278|12.9214|Europe/Berlin
+Halle|DE|51.4828|11.9697|Europe/Berlin
+Magdeburgo|DE|52.1205|11.6276|Europe/Berlin
+Erfurt|DE|50.9848|11.0299|Europe/Berlin
+Rostock|DE|54.0924|12.0991|Europe/Berlin
+Mainz|DE|49.9929|8.2473|Europe/Berlin
+Kassel|DE|51.3127|9.4797|Europe/Berlin
+Saarbrücken|DE|49.2402|6.9969|Europe/Berlin
+Ratisbona|DE|49.0134|12.1016|Europe/Berlin
+Würzburg|DE|49.7913|9.9534|Europe/Berlin
+Ulm|DE|48.3974|9.9934|Europe/Berlin
+Sheffield|GB|53.3811|-1.4701|Europe/London
+Nottingham|GB|52.9548|-1.1581|Europe/London
+Leicester|GB|52.6369|-1.1398|Europe/London
+Southampton|GB|50.9097|-1.4044|Europe/London
+Plymouth|GB|50.3755|-4.1427|Europe/London
+Aberdeen|GB|57.1497|-2.0943|Europe/London
+Dundee|GB|56.4620|-2.9707|Europe/London
+Swansea|GB|51.6214|-3.9436|Europe/London
+Norwich|GB|52.6309|1.2974|Europe/London
+Exeter|GB|50.7184|-3.5339|Europe/London
+Derry|GB|54.9966|-7.3086|Europe/London
+Waterford|IE|52.2593|-7.1101|Europe/Dublin
+Sligo|IE|54.2766|-8.4761|Europe/Dublin
+Tilburg|NL|51.5555|5.0913|Europe/Amsterdam
+Breda|NL|51.5719|4.7683|Europe/Amsterdam
+Arnhem|NL|51.9851|5.8987|Europe/Amsterdam
+Haarlem|NL|52.3874|4.6462|Europe/Amsterdam
+Charleroi|BE|50.4108|4.4446|Europe/Brussels
+Namur|BE|50.4674|4.8720|Europe/Brussels
+Ostende|BE|51.2154|2.9286|Europe/Brussels
+Winterthur|CH|47.5006|8.7240|Europe/Zurich
+Sankt Gallen|CH|47.4245|9.3767|Europe/Zurich
+Klagenfurt|AT|46.6247|14.3053|Europe/Vienna
+Villach|AT|46.6111|13.8558|Europe/Vienna
+Bregenz|AT|47.5031|9.7471|Europe/Vienna
+Esbjerg|DK|55.4765|8.4594|Europe/Copenhagen
+Roskilde|DK|55.6415|12.0803|Europe/Copenhagen
+Kristiansand|NO|58.1467|7.9956|Europe/Oslo
+Bodø|NO|67.2804|14.4049|Europe/Oslo
+Alesund|NO|62.4722|6.1549|Europe/Oslo
+Örebro|SE|59.2753|15.2134|Europe/Stockholm
+Linköping|SE|58.4109|15.6216|Europe/Stockholm
+Västerås|SE|59.6099|16.5448|Europe/Stockholm
+Umeå|SE|63.8258|20.2630|Europe/Stockholm
+Luleå|SE|65.5848|22.1547|Europe/Stockholm
+Oulu|FI|65.0121|25.4651|Europe/Helsinki
+Espoo|FI|60.2055|24.6559|Europe/Helsinki
+Jyväskylä|FI|62.2426|25.7473|Europe/Helsinki
+Kuopio|FI|62.8924|27.6770|Europe/Helsinki
+Lahti|FI|60.9827|25.6612|Europe/Helsinki
+Mariehamn|AX|60.0973|19.9348|Europe/Mariehamn
+Pärnu|EE|58.3859|24.4971|Europe/Tallinn
+Narva|EE|59.3797|28.1790|Europe/Tallinn
+Daugavpils|LV|55.8747|26.5362|Europe/Riga
+Liepāja|LV|56.5047|21.0108|Europe/Riga
+Jūrmala|LV|56.9680|23.7703|Europe/Riga
+Klaipėda|LT|55.7033|21.1443|Europe/Vilnius
+Šiauliai|LT|55.9349|23.3137|Europe/Vilnius
+Panevėžys|LT|55.7348|24.3575|Europe/Vilnius
+Szczecin|PL|53.4285|14.5528|Europe/Warsaw
+Bydgoszcz|PL|53.1235|18.0084|Europe/Warsaw
+Lublin|PL|51.2465|22.5684|Europe/Warsaw
+Białystok|PL|53.1325|23.1688|Europe/Warsaw
+Rzeszów|PL|50.0412|21.9991|Europe/Warsaw
+Kielce|PL|50.8661|20.6286|Europe/Warsaw
+Olsztyn|PL|53.7784|20.4801|Europe/Warsaw
+Opole|PL|50.6751|17.9213|Europe/Warsaw
+Gdynia|PL|54.5189|18.5305|Europe/Warsaw
+Sopot|PL|54.4418|18.5601|Europe/Warsaw
+Olomouc|CZ|49.5938|17.2509|Europe/Prague
+Liberec|CZ|50.7663|15.0543|Europe/Prague
+České Budějovice|CZ|48.9745|14.4743|Europe/Prague
+Žilina|SK|49.2231|18.7394|Europe/Bratislava
+Banská Bystrica|SK|48.7364|19.1462|Europe/Bratislava
+Nitra|SK|48.3069|18.0864|Europe/Bratislava
+Szeged|HU|46.2530|20.1414|Europe/Budapest
+Miskolc|HU|48.1035|20.7784|Europe/Budapest
+Győr|HU|47.6875|17.6504|Europe/Budapest
+Rijeka|HR|45.3271|14.4422|Europe/Zagreb
+Osijek|HR|45.5550|18.6955|Europe/Zagreb
+Celje|SI|46.2364|15.2677|Europe/Ljubljana
+Koper|SI|45.5469|13.7294|Europe/Ljubljana
+Niš|RS|43.3209|21.8958|Europe/Belgrade
+Kragujevac|RS|44.0128|20.9114|Europe/Belgrade
+Subotica|RS|46.1000|19.6667|Europe/Belgrade
+Banja Luka|BA|44.7722|17.1910|Europe/Sarajevo
+Tuzla|BA|44.5384|18.6671|Europe/Sarajevo
+Priština|XK|42.6629|21.1655|Europe/Belgrade
+Prizren|XK|42.2139|20.7397|Europe/Belgrade
+Bitola|MK|41.0297|21.3292|Europe/Skopje
+Shkodër|AL|42.0693|19.5126|Europe/Tirane
+Durrës|AL|41.3246|19.4565|Europe/Tirane
+Vlorë|AL|40.4660|19.4914|Europe/Tirane
+Budva|ME|42.2864|18.8400|Europe/Podgorica
+Patras|GR|38.2466|21.7346|Europe/Athens
+Larissa|GR|39.6390|22.4191|Europe/Athens
+Ioannina|GR|39.6650|20.8537|Europe/Athens
+Canéia|GR|35.5138|24.0180|Europe/Athens
+Burgas|BG|42.5048|27.4626|Europe/Sofia
+Ruse|BG|43.8356|25.9657|Europe/Sofia
+Stara Zagora|BG|42.4258|25.6345|Europe/Sofia
+Veliko Tarnovo|BG|43.0757|25.6172|Europe/Sofia
+Constança|RO|44.1598|28.6348|Europe/Bucharest
+Iași|RO|47.1585|27.6014|Europe/Bucharest
+Craiova|RO|44.3302|23.7949|Europe/Bucharest
+Oradea|RO|47.0465|21.9189|Europe/Bucharest
+Galați|RO|45.4353|28.0080|Europe/Bucharest
+Bălți|MD|47.7540|27.9184|Europe/Chisinau
+Tiraspol|MD|46.8403|29.6433|Europe/Chisinau
+Zaporíjia|UA|47.8388|35.1396|Europe/Kyiv
+Kryvyi Rih|UA|47.9105|33.3918|Europe/Kyiv
+Vinnytsia|UA|49.2331|28.4682|Europe/Kyiv
+Poltava|UA|49.5883|34.5514|Europe/Kyiv
+Chernihiv|UA|51.4982|31.2893|Europe/Kyiv
+Ivano-Frankivsk|UA|48.9226|24.7111|Europe/Kyiv
+Uzhhorod|UA|48.6208|22.2879|Europe/Kyiv
+Chernivtsi|UA|48.2921|25.9352|Europe/Kyiv
+Mikolaiv|UA|46.9750|31.9946|Europe/Kyiv
+Gomel|BY|52.4345|30.9754|Europe/Minsk
+Vitebsk|BY|55.1904|30.2049|Europe/Minsk
+Grodno|BY|53.6694|23.8131|Europe/Minsk
+Brest (Bielorrússia)|BY|52.0976|23.7341|Europe/Minsk
+Mogilev|BY|53.9007|30.3313|Europe/Minsk
+Tula|RU|54.1961|37.6182|Europe/Moscow
+Iaroslavl|RU|57.6261|39.8845|Europe/Moscow
+Tver|RU|56.8587|35.9176|Europe/Moscow
+Riazã|RU|54.6269|39.6916|Europe/Moscow
+Kursk|RU|51.7304|36.1926|Europe/Moscow
+Belgorod|RU|50.5997|36.5886|Europe/Moscow
+Saratov|RU|51.5336|46.0343|Europe/Saratov
+Penza|RU|53.1959|45.0183|Europe/Moscow
+Astrakhan|RU|46.3497|48.0408|Europe/Astrakhan
+Arcangel|RU|64.5401|40.5433|Europe/Moscow
+Petrozavodsk|RU|61.7849|34.3469|Europe/Moscow
+Pskov|RU|57.8136|28.3496|Europe/Moscow
+Veliky Novgorod|RU|58.5213|31.2755|Europe/Moscow
+Vladimir|RU|56.1290|40.4070|Europe/Moscow
+Kaluga|RU|54.5138|36.2612|Europe/Moscow
+Makhachkala|RU|42.9849|47.5047|Europe/Moscow
+Grozny|RU|43.3180|45.6949|Europe/Moscow
+Stavropol|RU|45.0428|41.9734|Europe/Moscow
+Izhevsk|RU|56.8527|53.2115|Europe/Samara
+Tiumen|RU|57.1522|65.5272|Asia/Yekaterinburg
+Orenburg|RU|51.7682|55.0970|Asia/Yekaterinburg
+Surgut|RU|61.2540|73.3962|Asia/Yekaterinburg
+Barnaul|RU|53.3548|83.7698|Asia/Barnaul
+Tomsk|RU|56.4846|84.9476|Asia/Tomsk
+Kemerovo|RU|55.3547|86.0873|Asia/Novokuznetsk
+Ulan-Ude|RU|51.8335|107.5841|Asia/Irkutsk
+Chita|RU|52.0340|113.4994|Asia/Chita
+Iuzhno-Sakhalinsk|RU|46.9591|142.7380|Asia/Sakhalin
+Blagoveshchensk|RU|50.2796|127.5405|Asia/Yakutsk
+Anadyr|RU|64.7337|177.5150|Asia/Anadyr
+Magadan|RU|59.5638|150.8035|Asia/Magadan
+Adana|TR|37.0000|35.3213|Europe/Istanbul
+Gaziantep|TR|37.0662|37.3833|Europe/Istanbul
+Kayseri|TR|38.7312|35.4787|Europe/Istanbul
+Mersin|TR|36.8121|34.6415|Europe/Istanbul
+Diyarbakır|TR|37.9144|40.2306|Europe/Istanbul
+Samsun|TR|41.2867|36.3300|Europe/Istanbul
+Erzurum|TR|39.9055|41.2658|Europe/Istanbul
+Van|TR|38.5012|43.3729|Europe/Istanbul
+Edirne|TR|41.6771|26.5557|Europe/Istanbul
+Marmaris|TR|36.8550|28.2742|Europe/Istanbul
+Fethiye|TR|36.6214|29.1164|Europe/Istanbul
+Çanakkale|TR|40.1553|26.4142|Europe/Istanbul
+Kutaisi|GE|42.2679|42.6946|Asia/Tbilisi
+Gori|GE|41.9842|44.1158|Asia/Tbilisi
+Gyumri|AM|40.7942|43.8453|Asia/Yerevan
+Sevan|AM|40.5545|44.9467|Asia/Yerevan
+Ganja|AZ|40.6828|46.3606|Asia/Baku
+Sumqayit|AZ|40.5855|49.6317|Asia/Baku
+Shaki|AZ|41.1975|47.1706|Asia/Baku
+Karaganda|KZ|49.8047|73.1094|Asia/Almaty
+Aktobe|KZ|50.2839|57.1670|Asia/Aqtobe
+Atyrau|KZ|47.0945|51.9238|Asia/Atyrau
+Aktau|KZ|43.6532|51.1975|Asia/Aqtau
+Pavlodar|KZ|52.2873|76.9674|Asia/Almaty
+Oskemen|KZ|49.9487|82.6279|Asia/Almaty
+Namangan|UZ|40.9983|71.6726|Asia/Tashkent
+Fergana|UZ|40.3864|71.7864|Asia/Tashkent
+Nukus|UZ|42.4531|59.6103|Asia/Tashkent
+Osh|KG|40.5283|72.7985|Asia/Bishkek
+Khujand|TJ|40.2826|69.6220|Asia/Dushanbe
+Turkmenbashi|TM|40.0222|52.9553|Asia/Ashgabat
+Mary|TM|37.5994|61.8302|Asia/Ashgabat
+Shijiazhuang|CN|38.0428|114.5149|Asia/Shanghai
+Tangshan|CN|39.6309|118.1802|Asia/Shanghai
+Handan|CN|36.6256|114.5391|Asia/Shanghai
+Qinhuangdao|CN|39.9354|119.6005|Asia/Shanghai
+Nantong|CN|31.9802|120.8943|Asia/Shanghai
+Xuzhou|CN|34.2058|117.2841|Asia/Shanghai
+Zhenjiang|CN|32.1878|119.4250|Asia/Shanghai
+Yancheng|CN|33.3477|120.1639|Asia/Shanghai
+Jiaxing|CN|30.7468|120.7555|Asia/Shanghai
+Shaoxing|CN|30.0300|120.5800|Asia/Shanghai
+Huzhou|CN|30.8930|120.0868|Asia/Shanghai
+Zibo|CN|36.8135|118.0548|Asia/Shanghai
+Weifang|CN|36.7069|119.1619|Asia/Shanghai
+Linyi|CN|35.1041|118.3564|Asia/Shanghai
+Liuzhou|CN|24.3255|109.4155|Asia/Shanghai
+Zhongshan|CN|22.5170|113.3926|Asia/Shanghai
+Shantou|CN|23.3541|116.6819|Asia/Shanghai
+Jiangmen|CN|22.5790|113.0815|Asia/Shanghai
+Quanzhou|CN|24.8741|118.6757|Asia/Shanghai
+Zhangzhou|CN|24.5130|117.6471|Asia/Shanghai
+Jiujiang|CN|29.7050|116.0019|Asia/Shanghai
+Yichang|CN|30.6919|111.2864|Asia/Shanghai
+Xiangtan|CN|27.8297|112.9441|Asia/Shanghai
+Hengyang|CN|26.8934|112.5720|Asia/Shanghai
+Mianyang|CN|31.4675|104.6796|Asia/Shanghai
+Luzhou|CN|28.8718|105.4423|Asia/Shanghai
+Zunyi|CN|27.7257|106.9273|Asia/Shanghai
+Qujing|CN|25.4900|103.7960|Asia/Shanghai
+Ordos|CN|39.6086|109.7810|Asia/Shanghai
+Daqing|CN|46.5877|125.1038|Asia/Shanghai
+Qiqihar|CN|47.3543|123.9180|Asia/Shanghai
+Mudanjiang|CN|44.5513|129.6332|Asia/Shanghai
+Fushun|CN|41.8800|123.9573|Asia/Shanghai
+Baoji|CN|34.3619|107.2373|Asia/Shanghai
+Yan'an|CN|36.5853|109.4898|Asia/Shanghai
+Tianshui|CN|34.5809|105.7249|Asia/Shanghai
+Shigatse|CN|29.2669|88.8807|Asia/Shanghai
+Kashgar|CN|39.4704|75.9898|Asia/Urumqi
+Dunhuang|CN|40.1421|94.6620|Asia/Shanghai
+Jiayuguan|CN|39.7727|98.2890|Asia/Shanghai
+Shangri-La|CN|27.8294|99.7065|Asia/Shanghai
+Hailar|CN|49.2122|119.7658|Asia/Shanghai
+Saitama|JP|35.8617|139.6455|Asia/Tokyo
+Chiba|JP|35.6073|140.1063|Asia/Tokyo
+Shizuoka|JP|34.9756|138.3828|Asia/Tokyo
+Okayama|JP|34.6551|133.9195|Asia/Tokyo
+Sakai|JP|34.5733|135.4830|Asia/Tokyo
+Utsunomiya|JP|36.5658|139.8836|Asia/Tokyo
+Gifu|JP|35.4233|136.7607|Asia/Tokyo
+Nagano|JP|36.6513|138.1810|Asia/Tokyo
+Wakayama|JP|34.2260|135.1675|Asia/Tokyo
+Tottori|JP|35.5011|134.2351|Asia/Tokyo
+Tokushima|JP|34.0658|134.5593|Asia/Tokyo
+Takamatsu|JP|34.3428|134.0466|Asia/Tokyo
+Miyazaki|JP|31.9111|131.4239|Asia/Tokyo
+Mito|JP|36.3659|140.4712|Asia/Tokyo
+Fukushima|JP|37.7608|140.4747|Asia/Tokyo
+Morioka|JP|39.7036|141.1527|Asia/Tokyo
+Akita|JP|39.7200|140.1025|Asia/Tokyo
+Yamagata|JP|38.2405|140.3634|Asia/Tokyo
+Kushiro|JP|42.9849|144.3814|Asia/Tokyo
+Kurashiki|JP|34.5850|133.7720|Asia/Tokyo
+Ulsan|KR|35.5384|129.3114|Asia/Seoul
+Changwon|KR|35.2272|128.6811|Asia/Seoul
+Goyang|KR|37.6584|126.8320|Asia/Seoul
+Yongin|KR|37.2411|127.1776|Asia/Seoul
+Chuncheon|KR|37.8813|127.7298|Asia/Seoul
+Gangneung|KR|37.7519|128.8761|Asia/Seoul
+Pohang|KR|36.0190|129.3435|Asia/Seoul
+Mokpo|KR|34.8118|126.3922|Asia/Seoul
+Andong|KR|36.5684|128.7294|Asia/Seoul
+Pyongyang|KP|39.0392|125.7625|Asia/Pyongyang
+Taoyuan|TW|24.9936|121.3010|Asia/Taipei
+Hsinchu|TW|24.8138|120.9675|Asia/Taipei
+Keelung|TW|25.1276|121.7392|Asia/Taipei
+Chiayi|TW|23.4801|120.4491|Asia/Taipei
+Taitung|TW|22.7583|121.1444|Asia/Taipei
+Darkhan|MN|49.4867|105.9228|Asia/Ulaanbaatar
+Erdenet|MN|49.0275|104.0444|Asia/Ulaanbaatar
+Jabalpur|IN|23.1815|79.9864|Asia/Kolkata
+Gwalior|IN|26.2183|78.1828|Asia/Kolkata
+Imphal|IN|24.8170|93.9368|Asia/Kolkata
+Aizawl|IN|23.7271|92.7176|Asia/Kolkata
+Kohima|IN|25.6751|94.1086|Asia/Kolkata
+Itanagar|IN|27.0844|93.6053|Asia/Kolkata
+Meerut|IN|28.9845|77.7064|Asia/Kolkata
+Ghaziabad|IN|28.6692|77.4538|Asia/Kolkata
+Gurgaon|IN|28.4595|77.0266|Asia/Kolkata
+Faridabad|IN|28.4089|77.3178|Asia/Kolkata
+Moradabad|IN|28.8386|78.7733|Asia/Kolkata
+Bareilly|IN|28.3670|79.4304|Asia/Kolkata
+Jhansi|IN|25.4484|78.5685|Asia/Kolkata
+Ajmer|IN|26.4499|74.6399|Asia/Kolkata
+Bikaner|IN|28.0229|73.3119|Asia/Kolkata
+Jamshedpur|IN|22.8046|86.2029|Asia/Kolkata
+Asansol|IN|23.6739|86.9524|Asia/Kolkata
+Siliguri|IN|26.7271|88.3953|Asia/Kolkata
+Vijayawada|IN|16.5062|80.6480|Asia/Kolkata
+Guntur|IN|16.3067|80.4365|Asia/Kolkata
+Warangal|IN|17.9689|79.5941|Asia/Kolkata
+Hubli|IN|15.3647|75.1240|Asia/Kolkata
+Salem|IN|11.6643|78.1460|Asia/Kolkata
+Tiruchirappalli|IN|10.7905|78.7047|Asia/Kolkata
+Thrissur|IN|10.5276|76.2144|Asia/Kolkata
+Kozhikode|IN|11.2588|75.7804|Asia/Kolkata
+Bhavnagar|IN|21.7645|72.1519|Asia/Kolkata
+Jamnagar|IN|22.4707|70.0577|Asia/Kolkata
+Kolhapur|IN|16.7050|74.2433|Asia/Kolkata
+Solapur|IN|17.6599|75.9064|Asia/Kolkata
+Jalandhar|IN|31.3260|75.5762|Asia/Kolkata
+Ujjain|IN|23.1765|75.7885|Asia/Kolkata
+Dibrugarh|IN|27.4728|94.9120|Asia/Kolkata
+Port Blair|IN|11.6234|92.7265|Asia/Kolkata
+Rawalpindi|PK|33.5651|73.0169|Asia/Karachi
+Gujranwala|PK|32.1877|74.1945|Asia/Karachi
+Bahawalpur|PK|29.3956|71.6836|Asia/Karachi
+Sukkur|PK|27.7052|68.8574|Asia/Karachi
+Abbottabad|PK|34.1688|73.2215|Asia/Karachi
+Muzaffarabad|PK|34.3700|73.4711|Asia/Karachi
+Sargodha|PK|32.0836|72.6711|Asia/Karachi
+Rajshahi|BD|24.3745|88.6042|Asia/Dhaka
+Sylhet|BD|24.8949|91.8687|Asia/Dhaka
+Barisal|BD|22.7010|90.3535|Asia/Dhaka
+Rangpur|BD|25.7439|89.2752|Asia/Dhaka
+Mymensingh|BD|24.7471|90.4203|Asia/Dhaka
+Gazipur|BD|23.9999|90.4203|Asia/Dhaka
+Jaffna|LK|9.6615|80.0255|Asia/Colombo
+Negombo|LK|7.2083|79.8358|Asia/Colombo
+Trincomalee|LK|8.5874|81.2152|Asia/Colombo
+Batticaloa|LK|7.7310|81.6747|Asia/Colombo
+Biratnagar|NP|26.4525|87.2718|Asia/Kathmandu
+Lalitpur|NP|27.6588|85.3247|Asia/Kathmandu
+Bhaktapur|NP|27.6710|85.4298|Asia/Kathmandu
+Lumbini|NP|27.4840|83.2760|Asia/Kathmandu
+Mawlamyine|MM|16.4905|97.6282|Asia/Yangon
+Taunggyi|MM|20.7892|97.0378|Asia/Yangon
+Bago|MM|17.3350|96.4810|Asia/Yangon
+Sittwe|MM|20.1460|92.8980|Asia/Yangon
+Nakhon Ratchasima|TH|14.9799|102.0978|Asia/Bangkok
+Khon Kaen|TH|16.4419|102.8360|Asia/Bangkok
+Hat Yai|TH|7.0086|100.4747|Asia/Bangkok
+Nakhon Si Thammarat|TH|8.4304|99.9631|Asia/Bangkok
+Ubon Ratchathani|TH|15.2287|104.8564|Asia/Bangkok
+Chonburi|TH|13.3611|100.9847|Asia/Bangkok
+Pai|TH|19.3583|98.4407|Asia/Bangkok
+Kanchanaburi|TH|14.0228|99.5328|Asia/Bangkok
+Phitsanulok|TH|16.8211|100.2659|Asia/Bangkok
+Hai Phong|VN|20.8449|106.6881|Asia/Ho_Chi_Minh
+Can Tho|VN|10.0452|105.7469|Asia/Ho_Chi_Minh
+Vung Tau|VN|10.3460|107.0843|Asia/Ho_Chi_Minh
+Buon Ma Thuot|VN|12.6667|108.0500|Asia/Ho_Chi_Minh
+Quy Nhon|VN|13.7765|109.2237|Asia/Ho_Chi_Minh
+Dong Hoi|VN|17.4689|106.6223|Asia/Ho_Chi_Minh
+Dien Bien Phu|VN|21.3860|103.0230|Asia/Ho_Chi_Minh
+Battambang|KH|13.0957|103.2022|Asia/Phnom_Penh
+Kampot|KH|10.6104|104.1815|Asia/Phnom_Penh
+Savannakhet|LA|16.5565|104.7524|Asia/Vientiane
+Pakse|LA|15.1200|105.7990|Asia/Vientiane
+Ipoh|MY|4.5975|101.0901|Asia/Kuala_Lumpur
+Shah Alam|MY|3.0738|101.5183|Asia/Kuala_Lumpur
+Kuantan|MY|3.8077|103.3260|Asia/Kuala_Lumpur
+Kota Bharu|MY|6.1254|102.2381|Asia/Kuala_Lumpur
+Seremban|MY|2.7259|101.9378|Asia/Kuala_Lumpur
+Miri|MY|4.3995|113.9914|Asia/Kuching
+Semarang|ID|-6.9667|110.4167|Asia/Jakarta
+Tangerang|ID|-6.1783|106.6319|Asia/Jakarta
+Bekasi|ID|-6.2349|106.9896|Asia/Jakarta
+Bogor|ID|-6.5971|106.8060|Asia/Jakarta
+Surakarta|ID|-7.5755|110.8243|Asia/Jakarta
+Pontianak|ID|-0.0263|109.3425|Asia/Pontianak
+Balikpapan|ID|-1.2379|116.8529|Asia/Makassar
+Samarinda|ID|-0.5022|117.1537|Asia/Makassar
+Padang|ID|-0.9471|100.4172|Asia/Jakarta
+Bandar Lampung|ID|-5.4294|105.2610|Asia/Jakarta
+Batam|ID|1.0456|104.0305|Asia/Jakarta
+Kupang|ID|-10.1772|123.6070|Asia/Makassar
+Palu|ID|-0.9003|119.8779|Asia/Makassar
+Kendari|ID|-3.9985|122.5130|Asia/Makassar
+Ternate|ID|0.7833|127.3667|Asia/Jayapura
+Cirebon|ID|-6.7063|108.5570|Asia/Jakarta
+Merauke|ID|-8.4932|140.4018|Asia/Jayapura
+Gorontalo|ID|0.5435|123.0568|Asia/Makassar
+Caloocan|PH|14.6500|120.9667|Asia/Manila
+Zamboanga|PH|6.9214|122.0790|Asia/Manila
+Iloilo|PH|10.7202|122.5621|Asia/Manila
+Bacolod|PH|10.6407|122.9689|Asia/Manila
+Tacloban|PH|11.2543|124.9630|Asia/Manila
+Angeles|PH|15.1450|120.5887|Asia/Manila
+Legazpi|PH|13.1391|123.7438|Asia/Manila
+Laoag|PH|18.1978|120.5936|Asia/Manila
+Batangas|PH|13.7565|121.0583|Asia/Manila
+Tagaytay|PH|14.1153|120.9621|Asia/Manila
+Dili|TL|-8.5586|125.5736|Asia/Dili
+Newcastle|AU|-32.9283|151.7817|Australia/Sydney
+Wollongong|AU|-34.4278|150.8931|Australia/Sydney
+Townsville|AU|-19.2590|146.8169|Australia/Brisbane
+Toowoomba|AU|-27.5598|151.9507|Australia/Brisbane
+Alice Springs|AU|-23.6980|133.8807|Australia/Darwin
+Ballarat|AU|-37.5622|143.8503|Australia/Melbourne
+Albury|AU|-36.0737|146.9135|Australia/Sydney
+Mackay|AU|-21.1411|149.1861|Australia/Brisbane
+Bunbury|AU|-33.3271|115.6414|Australia/Perth
+Fremantle|AU|-32.0569|115.7439|Australia/Perth
+Kalgoorlie|AU|-30.7489|121.4658|Australia/Perth
+Wagga Wagga|AU|-35.1082|147.3598|Australia/Sydney
+Mount Gambier|AU|-37.8284|140.7807|Australia/Adelaide
+Port Macquarie|AU|-31.4300|152.9089|Australia/Sydney
+Byron Bay|AU|-28.6474|153.6020|Australia/Sydney
+Maroochydore|AU|-26.6500|153.0667|Australia/Brisbane
+Albany|AU|-35.0269|117.8837|Australia/Perth
+Katherine|AU|-14.4652|132.2635|Australia/Darwin
+Hamilton|NZ|-37.7870|175.2793|Pacific/Auckland
+Tauranga|NZ|-37.6878|176.1651|Pacific/Auckland
+Palmerston North|NZ|-40.3523|175.6082|Pacific/Auckland
+Nelson|NZ|-41.2706|173.2840|Pacific/Auckland
+New Plymouth|NZ|-39.0556|174.0752|Pacific/Auckland
+Whangarei|NZ|-35.7251|174.3237|Pacific/Auckland
+Taupo|NZ|-38.6857|176.0702|Pacific/Auckland
+Wanaka|NZ|-44.7032|169.1321|Pacific/Auckland
+Lautoka|FJ|-17.6166|177.4500|Pacific/Fiji
+Labasa|FJ|-16.4167|179.3833|Pacific/Fiji
+Lae|PG|-6.7230|146.9980|Pacific/Port_Moresby
+Madang|PG|-5.2246|145.7966|Pacific/Port_Moresby
+Mount Hagen|PG|-5.8620|144.2296|Pacific/Port_Moresby
+Luganville|VU|-15.5100|167.1700|Pacific/Efate
+Tarawa|KI|1.4518|172.9717|Pacific/Tarawa
+Majuro|MH|7.0897|171.3803|Pacific/Majuro
+Funafuti|TV|-8.5211|179.1983|Pacific/Funafuti
+Pohnpei|FM|6.9248|158.1610|Pacific/Pohnpei
+Saipan|MP|15.1778|145.7500|Pacific/Saipan
+Pago Pago|AS|-14.2756|-170.7020|Pacific/Pago_Pago
+Hilo|US|19.7297|-155.0900|Pacific/Honolulu
+Mata-Utu|WF|-13.2825|-176.1736|Pacific/Wallis
+Alofi|NU|-19.0554|-169.9187|Pacific/Niue
+Jerusalém|IL|31.7683|35.2137|Asia/Jerusalem
+Tel Aviv|IL|32.0853|34.7818|Asia/Jerusalem
+Haifa|IL|32.7940|34.9896|Asia/Jerusalem
+Beerseba|IL|31.2530|34.7915|Asia/Jerusalem
+Eilat|IL|29.5577|34.9519|Asia/Jerusalem
+Nazare|IL|32.6996|35.3035|Asia/Jerusalem
+Tiberíades|IL|32.7959|35.5300|Asia/Jerusalem
+Ashdod|IL|31.8044|34.6553|Asia/Jerusalem
+Netanya|IL|32.3215|34.8532|Asia/Jerusalem
+Acre|IL|32.9234|35.0825|Asia/Jerusalem
+Belém (Palestina)|PS|31.7054|35.2024|Asia/Hebron
+Ramala|PS|31.9038|35.2034|Asia/Hebron
+Gaza|PS|31.5017|34.4668|Asia/Gaza
+Hebron|PS|31.5326|35.0998|Asia/Hebron
+Nablus|PS|32.2211|35.2544|Asia/Hebron
+Damasco|SY|33.5138|36.2765|Asia/Damascus
+Aleppo|SY|36.2021|37.1343|Asia/Damascus
+Homs|SY|34.7324|36.7137|Asia/Damascus
+Latakia|SY|35.5317|35.7915|Asia/Damascus
+Palmira|SY|34.5503|38.2684|Asia/Damascus
+Hama|SY|35.1318|36.7578|Asia/Damascus
+Saná|YE|15.3694|44.1910|Asia/Aden
+Aden|YE|12.7855|45.0187|Asia/Aden
+Taiz|YE|13.5795|44.0209|Asia/Aden
+Al Hudaydah|YE|14.7979|42.9540|Asia/Aden
+Mukalla|YE|14.5425|49.1242|Asia/Aden
+Trípoli|LY|32.8872|13.1913|Africa/Tripoli
+Benghazi|LY|32.1167|20.0667|Africa/Tripoli
+Misrata|LY|32.3754|15.0925|Africa/Tripoli
+Sirte|LY|31.2089|16.5887|Africa/Tripoli
+Sabha|LY|27.0377|14.4283|Africa/Tripoli
+Tobruk|LY|32.0836|23.9764|Africa/Tripoli
+Gizé|EG|30.0131|31.2089|Africa/Cairo
+Port Said|EG|31.2653|32.3019|Africa/Cairo
+Suez|EG|29.9668|32.5498|Africa/Cairo
+Tanta|EG|30.7865|31.0004|Africa/Cairo
+Mansoura|EG|31.0409|31.3785|Africa/Cairo
+Ismailia|EG|30.5965|32.2715|Africa/Cairo
+Faium|EG|29.3084|30.8428|Africa/Cairo
+Assiut|EG|27.1809|31.1837|Africa/Cairo
+Zagazig|EG|30.5877|31.5020|Africa/Cairo
+Minya|EG|28.1099|30.7503|Africa/Cairo
+Marsa Matruh|EG|31.3543|27.2373|Africa/Cairo
+Damietta|EG|31.4165|31.8133|Africa/Cairo
+Dammam|SA|26.4207|50.0888|Asia/Riyadh
+Khobar|SA|26.2172|50.1971|Asia/Riyadh
+Taif|SA|21.2703|40.4158|Asia/Riyadh
+Abha|SA|18.2164|42.5053|Asia/Riyadh
+Tabuk|SA|28.3835|36.5662|Asia/Riyadh
+Buraidah|SA|26.3260|43.9750|Asia/Riyadh
+Hail|SA|27.5114|41.7208|Asia/Riyadh
+Jazan|SA|16.8892|42.5611|Asia/Riyadh
+Najran|SA|17.4917|44.1322|Asia/Riyadh
+Hofuf|SA|25.3647|49.5878|Asia/Riyadh
+Yanbu|SA|24.0895|38.0618|Asia/Riyadh
+Ajman|AE|25.4052|55.5136|Asia/Dubai
+Ras Al Khaimah|AE|25.7895|55.9432|Asia/Dubai
+Fujairah|AE|25.1288|56.3265|Asia/Dubai
+Al Ain|AE|24.2075|55.7447|Asia/Dubai
+Al Wakrah|QA|25.1715|51.6034|Asia/Qatar
+Al Rayyan|QA|25.2919|51.4244|Asia/Qatar
+Muharraq|BH|26.2572|50.6119|Asia/Bahrain
+Sohar|OM|24.3474|56.7090|Asia/Muscat
+Nizwa|OM|22.9333|57.5333|Asia/Muscat
+Sur|OM|22.5667|59.5289|Asia/Muscat
+Mutrah|OM|23.6140|58.5680|Asia/Muscat
+Zarqa|JO|32.0728|36.0880|Asia/Amman
+Irbid|JO|32.5556|35.8500|Asia/Amman
+Jerash|JO|32.2747|35.8961|Asia/Amman
+Madaba|JO|31.7160|35.7939|Asia/Amman
+Karak|JO|31.1853|35.7048|Asia/Amman
+Trípoli (Líbano)|LB|34.4367|35.8497|Asia/Beirut
+Sidon|LB|33.5630|35.3688|Asia/Beirut
+Tiro|LB|33.2705|35.2038|Asia/Beirut
+Zahle|LB|33.8463|35.9020|Asia/Beirut
+Basra|IQ|30.5085|47.7835|Asia/Baghdad
+Mossul|IQ|36.3350|43.1189|Asia/Baghdad
+Najaf|IQ|32.0000|44.3360|Asia/Baghdad
+Carbala|IQ|32.6160|44.0249|Asia/Baghdad
+Sulaymaniyah|IQ|35.5572|45.4351|Asia/Baghdad
+Kirkuk|IQ|35.4681|44.3922|Asia/Baghdad
+Duhok|IQ|36.8667|42.9885|Asia/Baghdad
+Nassíria|IQ|31.0580|46.2573|Asia/Baghdad
+Karaj|IR|35.8327|50.9915|Asia/Tehran
+Ahvaz|IR|31.3183|48.6706|Asia/Tehran
+Qom|IR|34.6416|50.8746|Asia/Tehran
+Kermanshah|IR|34.3277|47.0778|Asia/Tehran
+Urmia|IR|37.5527|45.0761|Asia/Tehran
+Rasht|IR|37.2808|49.5832|Asia/Tehran
+Kerman|IR|30.2839|57.0834|Asia/Tehran
+Bandar Abbas|IR|27.1865|56.2808|Asia/Tehran
+Zahedan|IR|29.4963|60.8629|Asia/Tehran
+Hamadan|IR|34.7992|48.5146|Asia/Tehran
+Ilha de Kish|IR|26.5578|53.9805|Asia/Tehran
+Sari|IR|36.5633|53.0601|Asia/Tehran
+Bushehr|IR|28.9234|50.8203|Asia/Tehran
+Safi|MA|32.2994|-9.2372|Africa/Casablanca
+Meknés|MA|33.8935|-5.5473|Africa/Casablanca
+Oujda|MA|34.6814|-1.9086|Africa/Casablanca
+Tetuão|MA|35.5785|-5.3684|Africa/Casablanca
+Kenitra|MA|34.2610|-6.5802|Africa/Casablanca
+Al Hoceima|MA|35.2517|-3.9372|Africa/Casablanca
+El Jadida|MA|33.2316|-8.5007|Africa/Casablanca
+Laayoune|EH|27.1253|-13.1625|Africa/El_Aaiun
+Dakhla|EH|23.6848|-15.9580|Africa/El_Aaiun
+Annaba|DZ|36.9000|7.7667|Africa/Algiers
+Setif|DZ|36.1898|5.4108|Africa/Algiers
+Blida|DZ|36.4700|2.8300|Africa/Algiers
+Batna|DZ|35.5559|6.1741|Africa/Algiers
+Tlemcen|DZ|34.8828|-1.3150|Africa/Algiers
+Bejaia|DZ|36.7509|5.0567|Africa/Algiers
+Ghardaia|DZ|32.4909|3.6735|Africa/Algiers
+Sfax|TN|34.7406|10.7603|Africa/Tunis
+Bizerta|TN|37.2744|9.8739|Africa/Tunis
+Gabès|TN|33.8815|10.0982|Africa/Tunis
+Monastir|TN|35.7643|10.8113|Africa/Tunis
+Hammamet|TN|36.4000|10.6167|Africa/Tunis
+Tozeur|TN|33.9197|8.1335|Africa/Tunis
+Kasserine|TN|35.1676|8.8365|Africa/Tunis
+Omdurman|SD|15.6445|32.4777|Africa/Khartoum
+Porto Sudão|SD|19.6158|37.2164|Africa/Khartoum
+Kassala|SD|15.4500|36.4000|Africa/Khartoum
+Nyala|SD|12.0489|24.8807|Africa/Khartoum
+Hargeisa|SO|9.5600|44.0650|Africa/Mogadishu
+Berbera|SO|10.4396|45.0143|Africa/Mogadishu
+Bosaso|SO|11.2842|49.1816|Africa/Mogadishu
+Kismayo|SO|-0.3582|42.5454|Africa/Mogadishu
+Dire Dawa|ET|9.5930|41.8661|Africa/Addis_Ababa
+Bahir Dar|ET|11.5936|37.3908|Africa/Addis_Ababa
+Mekele|ET|13.4967|39.4753|Africa/Addis_Ababa
+Hawassa|ET|7.0504|38.4955|Africa/Addis_Ababa
+Harar|ET|9.3126|42.1180|Africa/Addis_Ababa
+Massaua|ER|15.6097|39.4745|Africa/Asmara
+Kisumu|KE|-0.0917|34.7680|Africa/Nairobi
+Nakuru|KE|-0.3031|36.0800|Africa/Nairobi
+Eldoret|KE|0.5143|35.2698|Africa/Nairobi
+Malindi|KE|-3.2192|40.1169|Africa/Nairobi
+Garissa|KE|-0.4569|39.6583|Africa/Nairobi
+Mwanza|TZ|-2.5164|32.9175|Africa/Dar_es_Salaam
+Mbeya|TZ|-8.9094|33.4608|Africa/Dar_es_Salaam
+Tanga|TZ|-5.0689|39.0988|Africa/Dar_es_Salaam
+Morogoro|TZ|-6.8211|37.6595|Africa/Dar_es_Salaam
+Iringa|TZ|-7.7700|35.6900|Africa/Dar_es_Salaam
+Gulu|UG|2.7746|32.2990|Africa/Kampala
+Entebbe|UG|0.0512|32.4637|Africa/Kampala
+Mbarara|UG|-0.6072|30.6545|Africa/Kampala
+Mbale|UG|1.0821|34.1750|Africa/Kampala
+Huye|RW|-2.5967|29.7394|Africa/Kigali
+Gitega|BI|-3.4271|29.9246|Africa/Maputo
+Kaduna|NG|10.5222|7.4383|Africa/Lagos
+Enugu|NG|6.4584|7.5464|Africa/Lagos
+Onitsha|NG|6.1498|6.7857|Africa/Lagos
+Abeokuta|NG|7.1475|3.3619|Africa/Lagos
+Ilorin|NG|8.4966|4.5421|Africa/Lagos
+Jos|NG|9.8965|8.8583|Africa/Lagos
+Maiduguri|NG|11.8333|13.1500|Africa/Lagos
+Warri|NG|5.5160|5.7500|Africa/Lagos
+Calabar|NG|4.9589|8.3269|Africa/Lagos
+Sokoto|NG|13.0059|5.2476|Africa/Lagos
+Owerri|NG|5.4836|7.0333|Africa/Lagos
+Aba|NG|5.1167|7.3667|Africa/Lagos
+Uyo|NG|5.0377|7.9128|Africa/Lagos
+Tamale|GH|9.4034|-0.8424|Africa/Accra
+Takoradi|GH|4.8845|-1.7554|Africa/Accra
+Tema|GH|5.6698|-0.0166|Africa/Accra
+Ho|GH|6.6000|0.4700|Africa/Accra
+Bouaké|CI|7.6906|-5.0303|Africa/Abidjan
+San Pedro|CI|4.7485|-6.6363|Africa/Abidjan
+Daloa|CI|6.8774|-6.4502|Africa/Abidjan
+Korhogo|CI|9.4580|-5.6297|Africa/Abidjan
+Bobo-Dioulasso|BF|11.1771|-4.2979|Africa/Ouagadougou
+Zinder|NE|13.8070|8.9881|Africa/Niamey
+Maradi|NE|13.5000|7.1017|Africa/Niamey
+Agadez|NE|16.9733|7.9911|Africa/Niamey
+Sikasso|ML|11.3176|-5.6665|Africa/Bamako
+Mopti|ML|14.4843|-4.1830|Africa/Bamako
+Gao|ML|16.2717|-0.0447|Africa/Bamako
+Kayes|ML|14.4469|-11.4445|Africa/Bamako
+Touba|SN|14.8500|-15.8833|Africa/Dakar
+Thiès|SN|14.7910|-16.9359|Africa/Dakar
+Ziguinchor|SN|12.5833|-16.2719|Africa/Dakar
+Kaolack|SN|14.1652|-16.0754|Africa/Dakar
+Nouadhibou|MR|20.9310|-17.0347|Africa/Nouakchott
+Kankan|GN|10.3854|-9.3057|Africa/Conakry
+Labé|GN|11.3183|-12.2833|Africa/Conakry
+Bo|SL|7.9647|-11.7383|Africa/Freetown
+Kenema|SL|7.8767|-11.1900|Africa/Freetown
+Gbarnga|LR|6.9956|-9.4722|Africa/Monrovia
+Buchanan|LR|5.8808|-10.0467|Africa/Monrovia
+Porto Novo|BJ|6.4969|2.6289|Africa/Porto-Novo
+Parakou|BJ|9.3372|2.6303|Africa/Porto-Novo
+Kara|TG|9.5511|1.1861|Africa/Lome
+Sokodé|TG|8.9833|1.1333|Africa/Lome
+Garoua|CM|9.3014|13.3977|Africa/Douala
+Bamenda|CM|5.9597|10.1460|Africa/Douala
+Bafoussam|CM|5.4737|10.4179|Africa/Douala
+Maroua|CM|10.5910|14.3159|Africa/Douala
+Kribi|CM|2.9400|9.9100|Africa/Douala
+Bangui|CF|4.3947|18.5582|Africa/Bangui
+Moundou|TD|8.5667|16.0833|Africa/Ndjamena
+Port-Gentil|GA|-0.7193|8.7815|Africa/Libreville
+Franceville|GA|-1.6333|13.5836|Africa/Libreville
+Malabo|GQ|3.7523|8.7741|Africa/Malabo
+Bata|GQ|1.8639|9.7658|Africa/Malabo
+Pointe-Noire|CG|-4.7692|11.8664|Africa/Brazzaville
+Mbuji-Mayi|CD|-6.1360|23.5898|Africa/Lubumbashi
+Kisangani|CD|0.5153|25.1910|Africa/Lubumbashi
+Bukavu|CD|-2.5083|28.8608|Africa/Lubumbashi
+Kananga|CD|-5.8962|22.4166|Africa/Lubumbashi
+Matadi|CD|-5.8167|13.4500|Africa/Kinshasa
+Huambo|AO|-12.7761|15.7392|Africa/Luanda
+Lobito|AO|-12.3644|13.5360|Africa/Luanda
+Cabinda|AO|-5.5500|12.2000|Africa/Luanda
+Malanje|AO|-9.5402|16.3410|Africa/Luanda
+Blantyre|MW|-15.7861|35.0058|Africa/Blantyre
+Mzuzu|MW|-11.4656|34.0207|Africa/Blantyre
+Ndola|ZM|-12.9587|28.6366|Africa/Lusaka
+Kitwe|ZM|-12.8024|28.2132|Africa/Lusaka
+Kabwe|ZM|-14.4469|28.4464|Africa/Lusaka
+Mutare|ZW|-18.9707|32.6709|Africa/Harare
+Gweru|ZW|-19.4500|29.8167|Africa/Harare
+Nampula|MZ|-15.1165|39.2666|Africa/Maputo
+Quelimane|MZ|-17.8786|36.8883|Africa/Maputo
+Tete|MZ|-16.1564|33.5867|Africa/Maputo
+Pemba|MZ|-12.9740|40.5178|Africa/Maputo
+Chimoio|MZ|-19.1164|33.4833|Africa/Maputo
+Matola|MZ|-25.9622|32.4589|Africa/Maputo
+Toamasina|MG|-18.1492|49.4023|Indian/Antananarivo
+Antsirabe|MG|-19.8659|47.0333|Indian/Antananarivo
+Mahajanga|MG|-15.7167|46.3167|Indian/Antananarivo
+Fianarantsoa|MG|-21.4527|47.0857|Indian/Antananarivo
+Toliara|MG|-23.3500|43.6667|Indian/Antananarivo
+Moroni|KM|-11.7022|43.2551|Indian/Comoro
+Saint-Denis|RE|-20.8789|55.4481|Indian/Reunion
+Mamoudzou|YT|-12.7806|45.2279|Indian/Mayotte
+Francistown|BW|-21.1700|27.5100|Africa/Gaborone
+Lobatse|BW|-25.2250|25.6700|Africa/Gaborone
+Oshakati|NA|-17.7883|15.7000|Africa/Windhoek
+Lüderitz|NA|-26.6481|15.1594|Africa/Windhoek
+Ondangwa|NA|-17.9167|15.9833|Africa/Windhoek
+Soweto|ZA|-26.2485|27.8540|Africa/Johannesburg
+East London|ZA|-33.0292|27.8546|Africa/Johannesburg
+Pietermaritzburg|ZA|-29.6006|30.3794|Africa/Johannesburg
+Polokwane|ZA|-23.9045|29.4689|Africa/Johannesburg
+Nelspruit|ZA|-25.4753|30.9694|Africa/Johannesburg
+Kimberley|ZA|-28.7282|24.7499|Africa/Johannesburg
+Rustenburg|ZA|-25.6676|27.2421|Africa/Johannesburg
+George|ZA|-33.9630|22.4617|Africa/Johannesburg
+Upington|ZA|-28.4478|21.2561|Africa/Johannesburg
+Richards Bay|ZA|-28.7807|32.0383|Africa/Johannesburg
+Manzini|SZ|-26.4988|31.3800|Africa/Mbabane
+Curepipe|MU|-20.3181|57.5264|Indian/Mauritius
+Mahé|SC|-4.6796|55.4920|Indian/Mahe
+Sal Rei|CV|16.1783|-22.9167|Atlantic/Cape_Verde
+Tarrafal|CV|15.2800|-23.7500|Atlantic/Cape_Verde
+Wau|SS|7.7028|27.9953|Africa/Juba
+Malakal|SS|9.5334|31.6605|Africa/Juba
+Yei|SS|4.0947|30.6779|Africa/Juba
+`;
+const TZALIAS = {USC:'America/Chicago', USM:'America/Denver', USP:'America/Los_Angeles', USX:'America/Phoenix', USK:'America/Anchorage', USH:'Pacific/Honolulu'};
+const DEFTZ = Object.fromEntries(`BR:America/Sao_Paulo,US:America/New_York,CN:Asia/Shanghai,IN:Asia/Kolkata,RU:Europe/Moscow,JP:Asia/Tokyo,DE:Europe/Berlin,FR:Europe/Paris,IT:Europe/Rome,ES:Europe/Madrid,GB:Europe/London,MX:America/Mexico_City,CA:America/Toronto,AU:Australia/Sydney,NZ:Pacific/Auckland,AR:America/Argentina/Buenos_Aires,CL:America/Santiago,PE:America/Lima,CO:America/Bogota,VE:America/Caracas,EC:America/Guayaquil,BO:America/La_Paz,PY:America/Asuncion,UY:America/Montevideo,PA:America/Panama,CR:America/Costa_Rica,NI:America/Managua,HN:America/Tegucigalpa,SV:America/El_Salvador,GT:America/Guatemala,BZ:America/Belize,CU:America/Havana,JM:America/Jamaica,DO:America/Santo_Domingo,HT:America/Port-au-Prince,BS:America/Nassau,BB:America/Barbados,TT:America/Port_of_Spain,PR:America/Puerto_Rico,GY:America/Guyana,SR:America/Paramaribo,GF:America/Cayenne,GL:America/Nuuk,AW:America/Aruba,PT:Europe/Lisbon,NL:Europe/Amsterdam,BE:Europe/Brussels,CH:Europe/Zurich,AT:Europe/Vienna,CZ:Europe/Prague,PL:Europe/Warsaw,HU:Europe/Budapest,SK:Europe/Bratislava,SI:Europe/Ljubljana,HR:Europe/Zagreb,RS:Europe/Belgrade,BA:Europe/Sarajevo,ME:Europe/Podgorica,AL:Europe/Tirane,MK:Europe/Skopje,GR:Europe/Athens,BG:Europe/Sofia,RO:Europe/Bucharest,MD:Europe/Chisinau,UA:Europe/Kyiv,BY:Europe/Minsk,LT:Europe/Vilnius,LV:Europe/Riga,EE:Europe/Tallinn,FI:Europe/Helsinki,SE:Europe/Stockholm,NO:Europe/Oslo,DK:Europe/Copenhagen,IS:Atlantic/Reykjavik,IE:Europe/Dublin,LU:Europe/Luxembourg,MC:Europe/Monaco,LI:Europe/Vaduz,AD:Europe/Andorra,SM:Europe/San_Marino,MT:Europe/Malta,CY:Asia/Nicosia,VA:Europe/Vatican,TR:Europe/Istanbul,GE:Asia/Tbilisi,AM:Asia/Yerevan,AZ:Asia/Baku,KZ:Asia/Almaty,UZ:Asia/Tashkent,KG:Asia/Bishkek,TJ:Asia/Dushanbe,TM:Asia/Ashgabat,MN:Asia/Ulaanbaatar,AF:Asia/Kabul,PK:Asia/Karachi,BD:Asia/Dhaka,LK:Asia/Colombo,NP:Asia/Kathmandu,BT:Asia/Thimphu,MV:Indian/Maldives,MM:Asia/Yangon,TH:Asia/Bangkok,VN:Asia/Ho_Chi_Minh,KH:Asia/Phnom_Penh,LA:Asia/Vientiane,MY:Asia/Kuala_Lumpur,SG:Asia/Singapore,BN:Asia/Brunei,ID:Asia/Jakarta,PH:Asia/Manila,TW:Asia/Taipei,KR:Asia/Seoul,HK:Asia/Hong_Kong,MO:Asia/Macau,AE:Asia/Dubai,QA:Asia/Qatar,BH:Asia/Bahrain,KW:Asia/Kuwait,SA:Asia/Riyadh,OM:Asia/Muscat,JO:Asia/Amman,LB:Asia/Beirut,IQ:Asia/Baghdad,IR:Asia/Tehran,EG:Africa/Cairo,TN:Africa/Tunis,DZ:Africa/Algiers,MA:Africa/Casablanca,MR:Africa/Nouakchott,SN:Africa/Dakar,GM:Africa/Banjul,ML:Africa/Bamako,GN:Africa/Conakry,SL:Africa/Freetown,LR:Africa/Monrovia,CI:Africa/Abidjan,GH:Africa/Accra,TG:Africa/Lome,BJ:Africa/Porto-Novo,BF:Africa/Ouagadougou,NE:Africa/Niamey,NG:Africa/Lagos,CM:Africa/Douala,TD:Africa/Ndjamena,GA:Africa/Libreville,CG:Africa/Brazzaville,CD:Africa/Kinshasa,AO:Africa/Luanda,ET:Africa/Addis_Ababa,ER:Africa/Asmara,DJ:Africa/Djibouti,SO:Africa/Mogadishu,KE:Africa/Nairobi,UG:Africa/Kampala,RW:Africa/Kigali,BI:Africa/Bujumbura,TZ:Africa/Dar_es_Salaam,MW:Africa/Blantyre,ZM:Africa/Lusaka,ZW:Africa/Harare,MZ:Africa/Maputo,MG:Indian/Antananarivo,MU:Indian/Mauritius,SC:Indian/Mahe,BW:Africa/Gaborone,NA:Africa/Windhoek,ZA:Africa/Johannesburg,LS:Africa/Maseru,SZ:Africa/Mbabane,CV:Atlantic/Cape_Verde,ST:Africa/Sao_Tome,GW:Africa/Bissau,SD:Africa/Khartoum,SS:Africa/Juba,FJ:Pacific/Fiji,PG:Pacific/Port_Moresby,WS:Pacific/Apia,TO:Pacific/Tongatapu,VU:Pacific/Efate,PF:Pacific/Tahiti,NC:Pacific/Noumea,CK:Pacific/Rarotonga,PW:Pacific/Palau,GU:Pacific/Guam,SB:Pacific/Guadalcanal,FO:Atlantic/Faroe`.split(',').map(p => p.split(':')));
+let regionNames = null; try { regionNames = new Intl.DisplayNames(['pt-BR'], {type:'region'}); } catch {}
+const countryName = cc => { try { return (regionNames && regionNames.of(cc)) || cc; } catch { return cc; } };
+const DATA = RAW.trim().split('\n').map(l => {
+  const [busca, cc, lat, lon, tz, titulo] = l.split('|');
+  return {busca, nome:busca.replace(/ \(.*\)$/, ''), cc, pais:countryName(cc), lat:+lat, lon:+lon, tz:TZALIAS[tz] || tz || DEFTZ[cc] || 'UTC', titulo:titulo || ''};
+});
+
+/* ---------- Sorteio: um país diferente a cada parada, sem repetir cidade ---------- */
+function shuffle(a){ a = a.slice(); for (let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function buildOrder(){
+  const by = new Map();
+  shuffle(DATA).forEach(c => { if (!by.has(c.cc)) by.set(c.cc,[]); by.get(c.cc).push(c); });
+  const order = []; let last = null, left = DATA.length;
+  while (left > 0){
+    const ks = [...by.keys()].filter(k => by.get(k).length);
+    // país com tantas cidades sobrando que precisa entrar já, para não ficar junto no final
+    const must = ks.find(k => by.get(k).length*2 - 1 >= left);
+    let pick;
+    if (must && must !== last) pick = must;
+    else {
+      const pool = ks.filter(k => k !== last), cand = pool.length ? pool : ks;
+      let r = Math.random() * cand.reduce((s,k) => s + by.get(k).length, 0);
+      pick = cand.find(k => (r -= by.get(k).length) < 0) || cand[cand.length-1];
+    }
+    order.push(by.get(pick).pop()); last = pick; left--;
+  }
+  return order;
+}
+
+/* ---------- Rádios (Radio Browser) ---------- */
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const HOSTS = ['https://all.api.radio-browser.info','https://de1.api.radio-browser.info','https://nl1.api.radio-browser.info','https://at1.api.radio-browser.info'];
+let hostI = 0;
+async function getJSON(path, ms = 9000){
+  for (let k = 0; k < HOSTS.length; k++){
+    const i = (hostI + k) % HOSTS.length, ctl = new AbortController(), to = setTimeout(() => ctl.abort(), ms);
+    try {
+      const r = await fetch(HOSTS[i] + path, {signal:ctl.signal}); clearTimeout(to);
+      if (!r.ok) continue;
+      hostI = i; return await r.json();
+    } catch { clearTimeout(to); }
+  }
+  return null;
+}
+const qstr = o => Object.entries(o).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
+const BASE = {hidebroken:'true', is_https:'true', order:'clickcount', reverse:'true'};
+const okSt = s => s && s.name && s.url_resolved && /^https:\/\//i.test(s.url_resolved) && s.lastcheckok !== 0;
+function uniq(list){ const seen = new Set(); return list.filter(s => { if (!okSt(s) || seen.has(s.url_resolved)) return false; seen.add(s.url_resolved); return true; }); }
+// mistura só as melhores, para cada volta tocar rádios um pouco diferentes
+function topShuffle(list, n = 5){ const h = shuffle(list.slice(0,n)); return h.concat(list.slice(n)); }
+async function findStations(city){
+  const n = norm(city.nome), cc = city.cc;
+  const [byName, byState] = await Promise.all([
+    getJSON('/json/stations/search?' + qstr({...BASE, countrycode:cc, name:city.nome, limit:60})),
+    getJSON('/json/stations/search?' + qstr({...BASE, countrycode:cc, state:city.nome, limit:60}))
+  ]);
+  let list = uniq([...(byName || []).filter(s => norm(s.name).includes(n) || norm(s.state) === n), ...(byState || []).filter(s => norm(s.state) === n)]);
+  if (list.length) return {mode:'city', cands:topShuffle(list), i:0};
+  const geo = await getJSON('/json/stations/search?' + qstr({...BASE, has_geo_info:'true', geo_lat:city.lat, geo_long:city.lon, geo_distance:80000, limit:40}));
+  list = uniq(geo || []);
+  if (list.length) return {mode:'near', cands:topShuffle(list), i:0};
+  const top = await getJSON('/json/stations/search?' + qstr({...BASE, countrycode:cc, limit:40}));
+  list = uniq(top || []);
+  return {mode:list.length ? 'country' : 'none', cands:topShuffle(list), i:0};
+}
+const cache = new Map();
+const getInfo = city => { if (!cache.has(city)) cache.set(city, findStations(city)); return cache.get(city); };
+
+/* ---------- Som ---------- */
+const audio = new Audio(); audio.preload = 'none';
+let vol = 0.8, muted = false, hlsLib = null, hlsObj = null, probing = false;
+function applyVol(){ audio.volume = vol; audio.muted = muted; }
+function stopAudio(){
+  audio.pause();
+  if (hlsObj){ try { hlsObj.destroy(); } catch {} hlsObj = null; }
+  audio.removeAttribute('src'); try { audio.load(); } catch {}
+}
+function tryPlay(st, ms = 8000){
+  return new Promise(res => {
+    stopAudio(); probing = true; applyVol();
+    let done = false;
+    const fin = ok => { if (done) return; done = true; clearTimeout(tm); audio.removeEventListener('playing', onP); audio.removeEventListener('error', onE); probing = false; res(ok); };
+    const onP = () => fin(true), onE = () => fin(false), tm = setTimeout(() => fin(false), ms);
+    audio.addEventListener('playing', onP); audio.addEventListener('error', onE);
+    const url = st.url_resolved;
+    if ((st.hls === 1 || /\.m3u8(\?|$)/i.test(url)) && !audio.canPlayType('application/vnd.apple.mpegurl')){
+      (hlsLib || (hlsLib = loadScript('https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js'))).then(() => {
+        if (done) return;
+        if (window.Hls && Hls.isSupported()){
+          hlsObj = new Hls(); hlsObj.loadSource(url); hlsObj.attachMedia(audio);
+          hlsObj.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) fin(false); });
+          audio.play().catch(() => {});
+        } else fin(false);
+      }).catch(() => fin(false));
+    } else { audio.src = url; audio.play().catch(() => {}); }
+  });
+}
+async function startRadio(info, t){
+  const max = Math.min(info.cands.length, 5);
+  for (let i = 0; i < max; i++){
+    const ok = await tryPlay(info.cands[i]);
+    if (t !== token) throw new Cancel();
+    if (ok){ info.i = i; return info.cands[i]; }
+  }
+  stopAudio(); return null;
+}
+let recovering = false, stall = 0;
+async function recover(){
+  if (recovering || !shownInfo || !shownInfo.cands.length) return;
+  recovering = true; const t = token, info = shownInfo;
+  try {
+    for (let i = info.i + 1; i < Math.min(info.cands.length, 9); i++){
+      const ok = await tryPlay(info.cands[i]);
+      if (t !== token) return;
+      if (ok){ info.i = i; lastStation = info.cands[i]; fillLower(shown, info); mountRadio(shown, info, lastStation); return; }
+    }
+    if (t === token){ say('A rádio saiu do ar. Indo para a próxima cidade.'); go(pos+1); }
+  } finally { recovering = false; }
+}
+audio.addEventListener('error', () => { if (!probing && phase === 'show' && !paused) recover(); });
+audio.addEventListener('ended', () => { if (!probing && phase === 'show' && !paused) recover(); });
+
+/* ---------- Globo ---------- */
+const gc = $('#globe'), gctx = gc.getContext('2d'), mc = $('#mini'), mctx = mc.getContext('2d');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {seaHi:css('--sea-hi'), seaLo:css('--sea-lo'), land:css('--land'), mark:css('--mark')};
+let LAND = null, W = 0, H = 0, DPR = 1, stars = [];
+function loadScript(src){ return new Promise((res,rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+Promise.all([
+  loadScript('https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js'),
+  loadScript('https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js')
+]).then(() => fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json'))
+  .then(r => r.json())
+  .then(t => { LAND = topojson.feature(t, t.objects.land); if (shown) drawMini(shown); })
+  .catch(() => {});
+
+const toVec = (lon,lat) => { const l = lon*DEG, f = lat*DEG; return [Math.cos(f)*Math.cos(l), Math.cos(f)*Math.sin(l), Math.sin(f)]; };
+const toLL = v => [Math.atan2(v[1],v[0])/DEG, Math.asin(Math.max(-1,Math.min(1,v[2])))/DEG];
+function slerp(a,b,t){
+  const A = toVec(a[0],a[1]), B = toVec(b[0],b[1]);
+  const d = Math.acos(Math.max(-1,Math.min(1,A[0]*B[0]+A[1]*B[1]+A[2]*B[2])));
+  if (d < 1e-6) return a;
+  const s = Math.sin(d), k1 = Math.sin((1-t)*d)/s, k2 = Math.sin(t*d)/s;
+  return toLL([A[0]*k1+B[0]*k2, A[1]*k1+B[1]*k2, A[2]*k1+B[2]*k2]);
+}
+function distKm(a,b){
+  const dLat = (b[1]-a[1])*DEG, dLon = (b[0]-a[0])*DEG;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a[1]*DEG)*Math.cos(b[1]*DEG)*Math.sin(dLon/2)**2;
+  return 12742 * Math.asin(Math.min(1,Math.sqrt(x)));
+}
+function P(lon,lat,lon0,lat0,R,cx,cy){
+  const l = (lon-lon0)*DEG, f = lat*DEG, f0 = lat0*DEG;
+  const c = Math.sin(f0)*Math.sin(f) + Math.cos(f0)*Math.cos(f)*Math.cos(l);
+  return {x:cx + R*Math.cos(f)*Math.sin(l), y:cy - R*(Math.cos(f0)*Math.sin(f) - Math.sin(f0)*Math.cos(f)*Math.cos(l)), v:c > 0};
+}
+function drawPin(ctx,q,R,color,ring){
+  if (!q.v) return;
+  const r = Math.max(4, R*.018);
+  if (ring != null){
+    ctx.beginPath(); ctx.arc(q.x,q.y,r*(1.5+ring*4.5),0,TAU);
+    ctx.strokeStyle = color; ctx.globalAlpha = (1-ring)*.8; ctx.lineWidth = Math.max(2,R*.006); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.beginPath(); ctx.arc(q.x,q.y,r,0,TAU); ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = Math.max(1.5,r*.3); ctx.strokeStyle = '#fff'; ctx.stroke();
+}
+const DOTS = DATA.map(c => { let h = 0; for (const ch of c.cc) h = (h*31 + ch.charCodeAt(0)) % 360; return {lon:c.lon, lat:c.lat, col:`hsl(${(h*7)%360} 95% 62%)`}; });
+function drawGlobe(ctx,cx,cy,R,lon0,lat0,o){
+  const glow = ctx.createRadialGradient(cx,cy,R*.97,cx,cy,R*1.2);
+  glow.addColorStop(0,'rgba(80,200,255,.5)'); glow.addColorStop(.5,'rgba(190,90,255,.18)'); glow.addColorStop(1,'rgba(190,90,255,0)');
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx,cy,R*1.2,0,TAU); ctx.fill();
+  const g = ctx.createRadialGradient(cx-R*.35,cy-R*.4,R*.05,cx,cy,R*1.05);
+  g.addColorStop(0,COL.seaHi); g.addColorStop(1,COL.seaLo);
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,TAU); ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,TAU); ctx.clip();
+  const grid = 'rgba(200,235,255,.22)';
+  if (LAND && window.d3){
+    const pr = d3.geoOrthographic().translate([cx,cy]).scale(R).rotate([-lon0,-lat0]).clipAngle(90);
+    const path = d3.geoPath(pr,ctx);
+    const lg = ctx.createLinearGradient(cx,cy-R,cx,cy+R);
+    [[0,'#f4f9ff'],[.16,'#a6eab8'],[.36,'#34c76b'],[.54,'#e2c95a'],[.72,'#f0944f'],[.88,'#3cc7a0'],[1,'#c4ecff']].forEach(([t,c]) => lg.addColorStop(t,c));
+    ctx.beginPath(); path(LAND); ctx.fillStyle = lg; ctx.fill();
+    ctx.lineWidth = Math.max(.8,R*.003); ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.stroke();
+    ctx.beginPath(); path(d3.geoGraticule10()); ctx.lineWidth = .6; ctx.strokeStyle = grid; ctx.stroke();
+    if (R > 90) for (const c of DOTS){ const q = P(c.lon,c.lat,lon0,lat0,R,cx,cy); if (q.v){ ctx.fillStyle = c.col; ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(1.6,R*.0065),0,TAU); ctx.fill(); } }
+  } else {
+    ctx.lineWidth = .6; ctx.strokeStyle = grid;
+    for (let lo = -180; lo < 180; lo += 30){
+      ctx.beginPath(); let pen = false;
+      for (let la = -90; la <= 90; la += 3){ const q = P(lo,la,lon0,lat0,R,cx,cy); if (q.v){ pen ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y); pen = true; } else pen = false; }
+      ctx.stroke();
+    }
+    for (let la = -60; la <= 60; la += 30){
+      ctx.beginPath(); let pen = false;
+      for (let lo = -180; lo <= 180; lo += 3){ const q = P(lo,la,lon0,lat0,R,cx,cy); if (q.v){ pen ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y); pen = true; } else pen = false; }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  if (o.from && o.to && o.arc > 0){
+    ctx.beginPath(); let pen = false; const N = Math.max(2,Math.ceil(90*o.arc));
+    for (let i = 0; i <= N; i++){
+      const ll = slerp(o.from,o.to,o.arc*i/N), q = P(ll[0],ll[1],lon0,lat0,R,cx,cy);
+      if (q.v){ pen ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y); pen = true; } else pen = false;
+    }
+    ctx.strokeStyle = COL.mark; ctx.lineWidth = Math.max(2,R*.007); ctx.setLineDash([R*.025,R*.016]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (o.from) drawPin(ctx,P(o.from[0],o.from[1],lon0,lat0,R,cx,cy),R,'#d7e6ee',null);
+  if (o.to) drawPin(ctx,P(o.to[0],o.to[1],lon0,lat0,R,cx,cy),R,COL.mark,o.ring);
+}
+
+const G = {active:false, lon:0, lat:0, k:1, from:null, to:null, arc:0};
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  gc.width = Math.round(W*DPR); gc.height = Math.round(H*DPR); gctx.setTransform(DPR,0,0,DPR,0,0);
+  const m = Math.round(mc.getBoundingClientRect().width * DPR) || 200; mc.width = mc.height = m;
+  let s = 7; stars = [];
+  const rnd = () => (s = (s*16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 150; i++) stars.push({x:rnd()*W, y:rnd()*H, r:rnd()*1.3+.3, a:rnd()*.6+.2});
+  if (shown) drawMini(shown);
+}
+function drawMain(now){
+  gctx.clearRect(0,0,W,H);
+  gctx.fillStyle = '#fff';
+  for (const st of stars){ gctx.globalAlpha = st.a; gctx.fillRect(st.x,st.y,st.r,st.r); }
+  gctx.globalAlpha = 1;
+  const narrow = W < H*1.1;
+  const R = Math.min(H*(narrow?.3:.42), W*(narrow?.42:.31)) * G.k;
+  const cx = narrow ? W/2 : W*.62, cy = narrow ? H*.36 : H*.47;
+  drawGlobe(gctx,cx,cy,R,G.lon,G.lat,{from:G.from, to:G.to, arc:G.arc, ring:G.to ? ((now/1000)%1.5)/1.5 : null});
+}
+function drawMini(city){
+  if (!city) return;
+  const w = mc.width; mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,w,w);
+  drawGlobe(mctx,w/2,w/2,w*.4,city.lon,city.lat,{to:[city.lon,city.lat], ring:.25});
+}
+function globeOn(on){
+  if (on){ G.active = true; gc.classList.add('on'); }
+  else { gc.classList.remove('on'); setTimeout(() => { if (!gc.classList.contains('on')) G.active = false; }, 1100); }
+}
+
+/* ---------- Tela da rádio ---------- */
+const radioLayer = $('#radioLayer');
+const noticeEl = (() => { const d = document.createElement('div'); d.id = 'notice'; d.setAttribute('role','status'); d.style.cssText = 'position:absolute;top:3vh;left:50%;transform:translateX(-50%);max-width:90vw;background:rgba(6,4,12,.92);border:1px solid var(--mark);padding:10px 16px;border-radius:8px;font-size:clamp(12px,1.2vw,20px);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;z-index:5'; $('#app').append(d); return d; })();
+let noticeT = null;
+function say(msg, ms = 4500){ noticeEl.textContent = msg; noticeEl.style.opacity = 1; clearTimeout(noticeT); noticeT = setTimeout(() => noticeEl.style.opacity = 0, ms); }
+function mountRadio(city, info, st){
+  const rad = document.createElement('div'); rad.className = 'rad';
+  const eq = document.createElement('div'); eq.className = 'eq';
+  for (let i = 0; i < 28; i++){ const b = document.createElement('i'); b.style.setProperty('--h', (.25 + Math.random()*.75).toFixed(2)); b.style.animationDuration = (.7 + Math.random()*1.1).toFixed(2) + 's'; b.style.animationDelay = (-Math.random()*1.5).toFixed(2) + 's'; eq.append(b); }
+  const box = document.createElement('div'); box.className = 'box';
+  if (st && /^https:\/\//i.test(st.favicon || '')){
+    const im = document.createElement('img'); im.alt = ''; im.referrerPolicy = 'no-referrer'; im.src = st.favicon; im.onerror = () => im.remove(); box.append(im);
+  }
+  const b = document.createElement('b'), s = document.createElement('span');
+  if (st){
+    b.textContent = st.name.trim();
+    s.textContent = [(st.tags || '').split(',').map(x => x.trim()).filter(Boolean).slice(0,3).join(' · '), st.codec, st.bitrate ? st.bitrate + ' kbps' : ''].filter(Boolean).join('  ·  ');
+  } else { b.textContent = 'Sem sinal'; s.textContent = `${city.nome} · ${city.pais} · nenhuma rádio respondeu agora`; }
+  box.append(b, s); rad.append(eq, box); radioLayer.replaceChildren(rad);
+  radioLayer.classList.toggle('still', paused);
+}
+
+/* ---------- Informações na tela ---------- */
+const E = {
+  lower:$('#lower'), tag:document.querySelector('.tag'), mini:$('#mini'), flight:$('#flight'), bar:$('#progress i'),
+  city:$('#lCity'), place:$('#lPlace'), desc:$('#lDesc'), time:$('#lTime'), date:$('#lDate'), tz:$('#lTz'), day:$('#lDay'),
+  coord:$('#lCoord'), stop:$('#lStop'), lap:$('#lLap'), next:$('#lNext'), count:$('#lCount'), credit:$('#lCredit')
+};
+const fl = {small:E.flight.querySelector('small'), h:E.flight.querySelector('h2'), p:E.flight.querySelector('p')};
+const fmtKm = km => Math.round(km).toLocaleString('pt-BR') + ' km';
+const mmss = s => { s = Math.max(0,Math.ceil(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+function tzParts(tz){
+  try {
+    const d = new Date();
+    return {
+      time:new Intl.DateTimeFormat('pt-BR',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d),
+      date:new Intl.DateTimeFormat('pt-BR',{timeZone:tz,weekday:'long',day:'numeric',month:'long'}).format(d),
+      off:(new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(d).find(x => x.type === 'timeZoneName') || {value:tz}).value.replace('GMT','UTC'),
+      hour:+new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',hour12:false}).format(d) % 24
+    };
+  } catch { return {time:'--:--:--', date:'', off:tz, hour:12}; }
+}
+const fmtCoord = (lat,lon) => `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'}  ${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'O' : 'L'}`;
+function fillLower(city, info){
+  const st = info.cands[info.i || 0] && lastStation ? info.cands[info.i || 0] : null;
+  E.tag.textContent = st ? 'AO VIVO · RÁDIO' : 'SEM SINAL';
+  E.city.textContent = city.nome;
+  E.place.replaceChildren(document.createTextNode(st ? st.name.trim() + ' ' : 'Nenhuma rádio respondeu '), Object.assign(document.createElement('span'), {textContent:'· ' + city.pais}));
+  const why = {city:'Rádio da cidade', near:'Rádio da região (até 80 km)', country:`Não achei rádio de ${city.nome}: toca uma rádio popular de ${city.pais}`, none:'Sem rádio cadastrada para este lugar'}[info.mode] || '';
+  E.desc.textContent = st ? why : 'Passando para a próxima cidade em instantes.'; E.desc.hidden = false;
+  E.coord.textContent = fmtCoord(city.lat, city.lon);
+  E.stop.textContent = `${pos + 1} de ${order.length}`;
+  E.lap.textContent = lap > 1 ? `Volta ${lap}` : 'Volta 1';
+  E.credit.textContent = 'Rádios: radio-browser.info';
+  tickClock();
+}
+function tickClock(){
+  if (!shown) return;
+  const t = tzParts(shown.tz);
+  E.time.textContent = t.time; E.date.textContent = t.date; E.tz.textContent = t.off;
+  E.day.textContent = t.hour >= 6 && t.hour < 18 ? 'Dia' : 'Noite';
+}
+
+/* ---------- Roteiro ---------- */
+let shownInfo = null, lastStation = null;
+let order = buildOrder(), pos = -1, lap = 1, secs = 120, token = 0, phase = 'idle', elapsed = 0, paused = false, shown = null, cur = null, last = performance.now();
+const sleepT = (ms,t) => new Promise((res,rej) => setTimeout(() => t === token ? res() : rej(new Cancel()), ms));
+const animT = (d,fn,t) => new Promise((res,rej) => {
+  const t0 = performance.now();
+  (function f(now){
+    if (t !== token) return rej(new Cancel());
+    const k = Math.min(1,(now-t0)/d); fn(k);
+    k < 1 ? requestAnimationFrame(f) : res();
+  })(t0);
+});
+const nextCity = () => order[pos+1] || null;
+
+async function transition(from, city, t){
+  const b = [city.lon, city.lat];
+  const a = from ? [from.lon, from.lat] : [b[0]-110, b[1]*.35];
+  const km = from ? distKm(a,b) : 0;
+  const infoP = getInfo(city);
+  E.lower.classList.remove('on'); E.mini.classList.remove('on');
+  stopAudio(); stall = 0;
+  fl.small.textContent = from ? 'Viajando para' : 'Começando por';
+  fl.h.textContent = city.nome;
+  fl.p.textContent = km > 1 ? `${city.pais} · ${fmtKm(km)}` : city.pais;
+  Object.assign(G,{lon:a[0], lat:a[1], k:1, from:from ? a : null, to:null, arc:0});
+  globeOn(true);
+  await sleepT(900,t);
+  E.flight.classList.add('on');
+  G.to = b;
+  await animT(from ? 3800 : 2600, k => {
+    const e = ease(k), c = slerp(a,b,e);
+    G.lon = c[0]; G.lat = c[1]; G.k = 1 - .28*Math.sin(Math.PI*k); G.arc = from ? e : 0;
+  }, t);
+  fl.small.textContent = 'Chegando em';
+  await animT(1500, k => { G.k = 1 + .3*ease(k); }, t);
+  const info = await Promise.race([infoP, new Promise(r => setTimeout(() => r(null), 15000))]) || {mode:'none', cands:[], i:0};
+  if (t !== token) throw new Cancel();
+  fl.small.textContent = 'Sintonizando';
+  lastStation = null;
+  const st = await startRadio(info, t);
+  lastStation = st; shownInfo = info;
+  mountRadio(city, info, st);
+  await sleepT(700,t);
+  E.flight.classList.remove('on');
+  globeOn(false);
+  await sleepT(500,t);
+  shown = city; fillLower(city, info); drawMini(city);
+  E.lower.classList.add('on'); E.mini.classList.add('on');
+  const n = nextCity(); if (n) getInfo(n);
+}
+async function go(p){
+  const t = ++token;
+  if (p >= order.length){ order = buildOrder(); lap++; p = 0; }
+  if (p < 0) p = order.length - 1;
+  pos = p;
+  const city = order[pos], prev = cur;
+  cur = city; phase = 'flight'; elapsed = 0;
+  try { await transition(prev, city, t); }
+  catch (e) { if (e instanceof Cancel) return; throw e; }
+  if (t !== token) return;
+  phase = 'show'; elapsed = 0;
+  if (!lastStation) elapsed = Math.max(0, secs - 7);
+}
+function loop(now){
+  const dt = Math.min(5,(now-last)/1000); last = now;
+  if (G.active) drawMain(now);
+  if (phase === 'show' && !paused){
+    elapsed += dt; if (elapsed >= secs) go(pos+1);
+    if (lastStation && !probing && !audio.paused && audio.readyState < 3){ stall += dt; if (stall > 20){ stall = 0; recover(); } } else stall = 0;
+  }
+  E.bar.style.width = (phase === 'show' ? Math.min(100,elapsed/secs*100) : 0) + '%';
+  const n = order[pos+1] || null;
+  E.next.textContent = n ? `${n.nome}, ${n.pais}` : 'nova volta ao mundo';
+  E.count.textContent = paused ? 'pausado' : mmss(secs - elapsed);
+  requestAnimationFrame(loop);
+}
+setInterval(tickClock, 1000);
+
+/* ---------- Opções e controles ---------- */
+const opts = $('#opts'), secsEl = $('#secs');
+const nCountries = new Set(DATA.map(c => c.pais)).size;
+$('#resumo').textContent = `${DATA.length} cidades em ${nCountries} países.`;
+$('#countries').textContent = 'Países: ' + [...new Set(DATA.map(c => c.pais))].sort((a,b) => a.localeCompare(b,'pt')).join(', ') + '.';
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch {} } };
+function openOpts(){ opts.classList.add('on'); secsEl.focus(); }
+function closeOpts(){ opts.classList.remove('on'); }
+function restart(){
+  secs = Math.max(15, Math.min(7200, +secsEl.value || 120));
+  store.set('radio.secs', String(secs));
+  order = buildOrder(); lap = 1; pos = -1; cur = null; shown = null; paused = false; $('#bPause').textContent = 'Pausar';
+  go(0);
+}
+$('#bApply').onclick = () => { restart(); closeOpts(); };
+$('#bClose').onclick = closeOpts;
+function togglePause(){
+  paused = !paused; $('#bPause').textContent = paused ? 'Continuar' : 'Pausar';
+  radioLayer.classList.toggle('still', paused);
+  if (paused) audio.pause(); else if (lastStation && phase === 'show') audio.play().catch(() => recover());
+}
+const volEl = $('#vol');
+function setVol(v, m){ if (v != null) vol = Math.max(0, Math.min(1, v)); if (m != null) muted = m; applyVol(); volEl.value = vol; $('#bMute').textContent = muted || vol === 0 ? 'Mudo' : 'Som'; store.set('radio.vol', String(vol)); }
+volEl.oninput = () => setVol(+volEl.value, false);
+$('#bMute').onclick = () => setVol(null, !muted);
+function toggleFull(){
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {});
+}
+$('#bPrev').onclick = () => go(pos-1);
+$('#bNext').onclick = () => go(pos+1);
+$('#bPause').onclick = togglePause;
+$('#bOpts').onclick = openOpts;
+$('#bFull').onclick = toggleFull;
+document.addEventListener('dblclick', () => { if (!opts.classList.contains('on')) toggleFull(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && opts.classList.contains('on')) return closeOpts();
+  if (opts.classList.contains('on') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowright' || k === 'n') go(pos+1);
+  else if (k === 'arrowleft' || k === 'p') go(pos-1);
+  else if (k === ' ') { e.preventDefault(); togglePause(); }
+  else if (k === 'f') toggleFull();
+  else if (k === 'm') setVol(null, !muted);
+  else if (k === 'arrowup'){ e.preventDefault(); setVol(vol + .1, false); }
+  else if (k === 'arrowdown'){ e.preventDefault(); setVol(vol - .1, false); }
+  else if (k === 'o') { e.preventDefault(); openOpts(); }
+});
+let idle;
+const wake = () => { document.body.classList.add('active'); clearTimeout(idle); idle = setTimeout(() => document.body.classList.remove('active'), 3000); };
+document.addEventListener('mousemove', wake);
+document.addEventListener('touchstart', wake, {passive:true});
+window.addEventListener('resize', resize);
+
+/* ---------- Início ---------- */
+const qs = new URLSearchParams(location.search);
+secsEl.value = qs.get('segundos') || store.get('radio.secs') || 120;
+secs = Math.max(15, Math.min(7200, +secsEl.value || 120));
+setVol(store.get('radio.vol') != null ? +store.get('radio.vol') : 0.8, false);
+resize();
+requestAnimationFrame(loop);
+if (qs.has('teste')) { window.__t = {DATA, buildOrder, findStations}; window.__r = () => ({phase, pos, city: cur && cur.nome, station: lastStation && lastStation.name, mode: shownInfo && shownInfo.mode, paused, src: audio.src}); }
+// o navegador só deixa tocar som depois de um toque: a tela inicial cumpre esse papel
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+function begin(full){
+  try { audio.src = SILENT; audio.play().catch(() => {}); } catch {}
+  $('#gate').classList.add('off');
+  if (full) toggleFull();
+  go(0); wake();
+}
+$('#bStart').onclick = () => begin(false);
+$('#bStartFull').onclick = () => begin(true);
+$('#bStart').focus();
+})();
+</script>
+</body>
+</html>
