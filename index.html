@@ -2235,158 +2235,20 @@ function buildOrder(){
   return order;
 }
 
-
 /* ---------- Anúncios (Google AdSense) ---------- */
-
-const ADS = {
-  client: 'ca-pub-6760898010595076',
-  slot: '6623111374'
-};
-
-(function ads() {
+// Preencha com os dados da sua conta AdSense. Com 'client' vazio, nenhum anúncio aparece.
+const ADS = {client:'', slot:''};   // client: 'ca-pub-XXXXXXXXXXXXXXXX'   slot: número do bloco de anúncio (só dígitos)
+(function ads(){
   if (!/^ca-pub-\d+$/.test(ADS.client) || !/^\d+$/.test(ADS.slot)) return;
-
-  /* Área externa do anúncio */
-  const band = document.createElement('div');
-  band.id = 'adband';
-
-  band.style.cssText = `
-    width: 100%;
-    height: 70px;
-    min-height: 70px;
-    max-height: 70px;
-    background: #08050d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    box-sizing: border-box;
-    padding: 5px 10px;
-  `;
-
-  /* ---------- Anúncios (Google AdSense) ---------- */
-
-const ADS = {
-  client: 'ca-pub-6760898010595076',
-  slot: '6623111374'
-};
-
-(function ads() {
-  /* Valida os IDs */
-  if (!/^ca-pub-\d+$/.test(ADS.client)) return;
-  if (!/^\d+$/.test(ADS.slot)) return;
-
-  /* Evita criar o anúncio duas vezes */
-  if (document.getElementById('adband')) return;
-
-  /* Container pequeno e flutuante */
-  const band = document.createElement('div');
-  band.id = 'adband';
-
-  band.style.cssText = `
-    position: fixed;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
-    width: 320px;
-    height: 50px;
-    max-width: calc(100vw - 20px);
-    z-index: 6;
-    overflow: hidden;
-    background: #06040c;
-    border-radius: 6px;
-    box-shadow: 0 3px 14px rgba(0,0,0,.45);
-  `;
-
-  /* Anúncio */
-  const ins = document.createElement('ins');
-  ins.className = 'adsbygoogle';
-
-  ins.style.cssText = `
-    display: block;
-    width: 320px;
-    height: 50px;
-    max-width: 100%;
-    margin: 0 auto;
-  `;
-
-  ins.setAttribute('data-ad-client', ADS.client);
-  ins.setAttribute('data-ad-slot', ADS.slot);
-  ins.setAttribute('data-ad-format', 'horizontal');
-  ins.setAttribute('data-full-width-responsive', 'false');
-
-  band.appendChild(ins);
-
-  /* Link de privacidade */
-  const pv = document.createElement('a');
-
-  pv.href = 'privacidade.html';
-  pv.target = '_blank';
-  pv.rel = 'noopener';
-  pv.textContent = 'Privacidade';
-
-  pv.style.cssText = `
-    position: absolute;
-    right: 3px;
-    bottom: 1px;
-    z-index: 2;
-    padding: 1px 3px;
-    background: rgba(6,4,12,.80);
-    color: #8b8296;
-    font-size: 7px;
-    line-height: 1;
-    text-decoration: none;
-  `;
-
-  band.appendChild(pv);
-
-  /*
-    Coloca diretamente no body.
-    NÃO altera #app.
-    NÃO adiciona body.hasads.
-    NÃO reduz a altura do site.
-  */
-  document.body.appendChild(band);
-
-  /* Inicializa o anúncio */
-  function iniciarAdSense() {
-    try {
-      window.adsbygoogle = window.adsbygoogle || [];
-      window.adsbygoogle.push({});
-    } catch (e) {
-      console.log('AdSense:', e);
-    }
-  }
-
-  /* Verifica se o script do AdSense já existe */
-  const existingScript = document.querySelector(
-    'script[src*="pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]'
-  );
-
-  if (existingScript) {
-    iniciarAdSense();
-    return;
-  }
-
-  /* Carrega o Google AdSense */
-  const sc = document.createElement('script');
-
-  sc.async = true;
-  sc.crossOrigin = 'anonymous';
-
-  sc.src =
-    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' +
-    ADS.client;
-
-  sc.onload = iniciarAdSense;
-
-  sc.onerror = function () {
-    console.log('Não foi possível carregar o AdSense.');
-    band.remove();
-  };
-
-  document.head.appendChild(sc);
+  const band = document.createElement('div'); band.id = 'adband';
+  const ins = document.createElement('ins'); ins.className = 'adsbygoogle'; ins.style.cssText = 'display:block;width:100%;height:90px';
+  ins.dataset.adClient = ADS.client; ins.dataset.adSlot = ADS.slot; ins.dataset.adFormat = 'horizontal'; ins.dataset.fullWidthResponsive = 'true';
+  const pv = document.createElement('a'); pv.href = 'privacidade.html'; pv.target = '_blank'; pv.rel = 'noopener'; pv.textContent = 'Privacidade'; pv.className = 'pv';
+  band.append(ins, pv); document.body.append(band); document.body.classList.add('hasads');
+  const sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
+  sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADS.client;
+  sc.onload = () => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} };
+  document.head.append(sc);
 })();
 
 /* ---------- Rádios (Radio Browser) ---------- */
