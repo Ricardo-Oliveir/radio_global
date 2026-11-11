@@ -44,6 +44,24 @@ button,input{font:inherit;color:inherit}
 #gate p{margin:1.4vh auto 3vh;max-width:46ch;color:var(--dim);font-size:clamp(14px,1.5vw,24px);line-height:1.5}
 #gate .btn{font-size:clamp(15px,1.6vw,26px);padding:14px 26px;margin:6px}
 #vol{width:90px;accent-color:var(--mark)}
+#pick{position:absolute;inset:0;z-index:8;background:radial-gradient(ellipse at 50% 38%,#3a1230 0%,#12081c 55%,#06040c 100%);touch-action:none}
+#pick[hidden]{display:none}
+#pc{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+#pickTop{position:absolute;top:2vh;left:2vw;right:2vw;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#pickTop input[type=text]{flex:1 1 220px;max-width:420px;background:rgba(6,16,28,.88);border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:9px 12px;font-size:14px}
+#pickTop button,.zoom button{background:rgba(6,16,28,.88);border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:14px}
+#pickTop button:hover,.zoom button:hover{border-color:var(--mark)}
+#pickName{position:absolute;left:0;right:0;bottom:5vh;text-align:center;font:700 clamp(22px,3.4vw,56px) var(--display);text-transform:uppercase;pointer-events:none;text-shadow:0 2px 14px #000}
+#pickName small{display:block;font:400 clamp(12px,1.3vw,20px) var(--body,sans-serif);color:var(--dim);text-transform:none;margin-top:4px}
+.zoom{position:absolute;right:3vw;bottom:5vh;display:flex;flex-direction:column;gap:8px}
+#adband{position:fixed;left:0;right:0;bottom:0;height:90px;z-index:7;background:#06040c;display:none;overflow:hidden}
+body.hasads #adband{display:block}
+body.hasads #app{bottom:90px}
+#adband .pv{position:absolute;right:6px;bottom:2px;font-size:10px;color:#8b8296;text-decoration:none;background:#06040c;padding:0 4px;z-index:2}
+#skip{position:absolute;top:calc(3vh + clamp(100px,12vw,240px) + 12px);right:3vw;z-index:4;background:#ff5b7f;color:#1a0610;border:0;border-radius:10px;padding:12px 20px;font:700 clamp(14px,1.4vw,22px) var(--mono);cursor:pointer;opacity:.78}
+#skip:hover,#skip:focus-visible{opacity:1;outline:2px solid #fff}
+#mini.on{pointer-events:auto;cursor:pointer}
+#bAuto.on{border-color:var(--mark);background:#ff5b7f;color:#1a0610}
 #globe{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .9s ease;pointer-events:none;
   background:radial-gradient(ellipse at 62% 45%,#143f8c 0%,#1d1048 45%,#080414 80%)}
 #globe.on{opacity:1}
@@ -135,15 +153,29 @@ body.active #hud{opacity:1}
   </div>
   <div id="progress"><i></i></div>
 
+  <button id="skip" type="button">Pular ▶</button>
   <div id="hud">
     <button id="bPrev" type="button">◀ Anterior</button>
     <button id="bPause" type="button">Pausar</button>
-    <button id="bNext" type="button">Próxima ▶</button>
+    <button id="bMap" type="button">Escolher no globo</button>
+    <button id="bAuto" type="button">Troca automática: desligada</button>
+    <button id="bOther" type="button">Outra rádio</button>
     <button id="bOpts" type="button">Opções</button>
     <button id="bMute" type="button">Som</button>
     <input id="vol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Volume">
     <button id="bFull" type="button">Tela cheia</button>
-    <span>Teclas: ← → espaço F M ↑↓ O</span>
+    <span>Teclas: ← → espaço G A R F M ↑↓ O</span>
+  </div>
+
+  <div id="pick" hidden>
+    <canvas id="pc"></canvas>
+    <div id="pickTop">
+      <input id="pq" type="text" list="pcities" placeholder="Buscar cidade…" autocomplete="off"><datalist id="pcities"></datalist>
+      <button id="pClose" type="button">Fechar</button>
+      <span style="font-size:13px;color:var(--dim)">Arraste para girar. Toque num ponto para ouvir a rádio dessa cidade.</span>
+    </div>
+    <div id="pickName"></div>
+    <div class="zoom"><button id="zIn" type="button" aria-label="Aproximar">+</button><button id="zOut" type="button" aria-label="Afastar">−</button></div>
   </div>
 
   <section id="opts" aria-label="Opções">
@@ -2203,6 +2235,22 @@ function buildOrder(){
   return order;
 }
 
+/* ---------- Anúncios (Google AdSense) ---------- */
+// Preencha com os dados da sua conta AdSense. Com 'client' vazio, nenhum anúncio aparece.
+const ADS = {client:'', slot:''};   // client: 'ca-pub-XXXXXXXXXXXXXXXX'   slot: número do bloco de anúncio (só dígitos)
+(function ads(){
+  if (!/^ca-pub-\d+$/.test(ADS.client) || !/^\d+$/.test(ADS.slot)) return;
+  const band = document.createElement('div'); band.id = 'adband';
+  const ins = document.createElement('ins'); ins.className = 'adsbygoogle'; ins.style.cssText = 'display:block;width:100%;height:90px';
+  ins.dataset.adClient = ADS.client; ins.dataset.adSlot = ADS.slot; ins.dataset.adFormat = 'horizontal'; ins.dataset.fullWidthResponsive = 'true';
+  const pv = document.createElement('a'); pv.href = 'privacidade.html'; pv.target = '_blank'; pv.rel = 'noopener'; pv.textContent = 'Privacidade'; pv.className = 'pv';
+  band.append(ins, pv); document.body.append(band); document.body.classList.add('hasads');
+  const sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
+  sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADS.client;
+  sc.onload = () => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} };
+  document.head.append(sc);
+})();
+
 /* ---------- Rádios (Radio Browser) ---------- */
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 const HOSTS = ['https://all.api.radio-browser.info','https://de1.api.radio-browser.info','https://nl1.api.radio-browser.info','https://at1.api.radio-browser.info'];
@@ -2290,7 +2338,7 @@ async function recover(){
       if (t !== token) return;
       if (ok){ info.i = i; lastStation = info.cands[i]; fillLower(shown, info); mountRadio(shown, info, lastStation); return; }
     }
-    if (t === token){ say('A rádio saiu do ar. Indo para a próxima cidade.'); go(pos+1); }
+    if (t === token){ if (!auto) say('A rádio saiu do ar. Toque em Outra rádio ou em Pular.'); else { say('A rádio saiu do ar. Indo para a próxima cidade.'); go(pos+1); } }
   } finally { recovering = false; }
 }
 audio.addEventListener('error', () => { if (!probing && phase === 'show' && !paused) recover(); });
@@ -2339,7 +2387,7 @@ function drawPin(ctx,q,R,color,ring){
   ctx.beginPath(); ctx.arc(q.x,q.y,r,0,TAU); ctx.fillStyle = color; ctx.fill();
   ctx.lineWidth = Math.max(1.5,r*.3); ctx.strokeStyle = '#fff'; ctx.stroke();
 }
-const DOTS = DATA.map(c => { let h = 0; for (const ch of c.cc) h = (h*31 + ch.charCodeAt(0)) % 360; return {lon:c.lon, lat:c.lat, col:`hsl(${(h*7)%360} 95% 62%)`}; });
+const DOTS = DATA.map(c => { let h = 0; for (const ch of c.cc) h = (h*31 + ch.charCodeAt(0)) % 360; return {c, lon:c.lon, lat:c.lat, col:`hsl(${(h*7)%360} 95% 62%)`}; });
 function drawGlobe(ctx,cx,cy,R,lon0,lat0,o){
   const glow = ctx.createRadialGradient(cx,cy,R*.97,cx,cy,R*1.2);
   glow.addColorStop(0,'rgba(80,200,255,.5)'); glow.addColorStop(.5,'rgba(190,90,255,.18)'); glow.addColorStop(1,'rgba(190,90,255,0)');
@@ -2386,7 +2434,7 @@ function drawGlobe(ctx,cx,cy,R,lon0,lat0,o){
 
 const G = {active:false, lon:0, lat:0, k:1, from:null, to:null, arc:0};
 function resize(){
-  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = $('#app').clientHeight || innerHeight;
   gc.width = Math.round(W*DPR); gc.height = Math.round(H*DPR); gctx.setTransform(DPR,0,0,DPR,0,0);
   const m = Math.round(mc.getBoundingClientRect().width * DPR) || 200; mc.width = mc.height = m;
   let s = 7; stars = [];
@@ -2478,7 +2526,7 @@ function tickClock(){
 }
 
 /* ---------- Roteiro ---------- */
-let shownInfo = null, lastStation = null;
+let shownInfo = null, lastStation = null, auto = false;
 let order = buildOrder(), pos = -1, lap = 1, secs = 120, token = 0, phase = 'idle', elapsed = 0, paused = false, shown = null, cur = null, last = performance.now();
 const sleepT = (ms,t) => new Promise((res,rej) => setTimeout(() => t === token ? res() : rej(new Cancel()), ms));
 const animT = (d,fn,t) => new Promise((res,rej) => {
@@ -2544,13 +2592,13 @@ function loop(now){
   const dt = Math.min(5,(now-last)/1000); last = now;
   if (G.active) drawMain(now);
   if (phase === 'show' && !paused){
-    elapsed += dt; if (elapsed >= secs) go(pos+1);
+    elapsed += dt; if (elapsed >= secs && auto) go(pos+1);
     if (lastStation && !probing && !audio.paused && audio.readyState < 3){ stall += dt; if (stall > 20){ stall = 0; recover(); } } else stall = 0;
   }
-  E.bar.style.width = (phase === 'show' ? Math.min(100,elapsed/secs*100) : 0) + '%';
+  E.bar.style.width = (phase === 'show' ? (!auto ? 100 : Math.min(100,elapsed/secs*100)) : 0) + '%';
   const n = order[pos+1] || null;
   E.next.textContent = n ? `${n.nome}, ${n.pais}` : 'nova volta ao mundo';
-  E.count.textContent = paused ? 'pausado' : mmss(secs - elapsed);
+  E.count.textContent = paused ? 'pausado' : !auto ? 'toque em Pular' : mmss(secs - elapsed);
   requestAnimationFrame(loop);
 }
 setInterval(tickClock, 1000);
@@ -2584,23 +2632,106 @@ function toggleFull(){
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {});
 }
-$('#bPrev').onclick = () => go(pos-1);
-$('#bNext').onclick = () => go(pos+1);
+/* ---------- Fixar, outra rádio e escolher no globo ---------- */
+function setAuto(v){ auto = v; const b = $('#bAuto'); b.classList.toggle('on', v); b.textContent = v ? 'Troca automática: ligada' : 'Troca automática: desligada'; if (v && phase === 'show') elapsed = 0; if (v) say(`Trocando de cidade a cada ${Math.round(secs/60*10)/10} min.`, 3500); }
+async function otherStation(){
+  if (phase !== 'show' || !shownInfo || shownInfo.cands.length < 2 || recovering) { say('Não há outra rádio carregada para esta cidade.'); return; }
+  const info = shownInfo, t = token, n = Math.min(info.cands.length, 9);
+  recovering = true; say('Trocando de rádio…', 3000);
+  try {
+    for (let k = 1; k < n; k++){
+      const i = (info.i + k) % n, ok = await tryPlay(info.cands[i]);
+      if (t !== token) return;
+      if (ok){ info.i = i; lastStation = info.cands[i]; fillLower(shown, info); mountRadio(shown, info, lastStation); return; }
+    }
+    say('Nenhuma outra rádio respondeu. Voltando para a anterior.'); await tryPlay(info.cands[info.i]);
+  } finally { recovering = false; }
+}
+const pick = $('#pick'), pc = $('#pc'), pctx = pc.getContext('2d'), pName = $('#pickName');
+const PK = {lon:0, lat:0, k:1, hover:null, on:false, drag:null};
+const byLabel = new Map(DATA.map(c => [`${c.nome}, ${c.pais}`, c]));
+$('#pcities').replaceChildren(...[...byLabel.keys()].sort((a,b) => a.localeCompare(b,'pt')).map(v => Object.assign(document.createElement('option'), {value:v})));
+function pickGeom(){ const R = Math.min(W, H) * .4 * PK.k; return {R, cx:W/2, cy:H*.5}; }
+function pickDraw(now){
+  if (!PK.on) return;
+  pc.width = Math.round(W*DPR); pc.height = Math.round(H*DPR); pctx.setTransform(DPR,0,0,DPR,0,0);
+  pctx.fillStyle = '#fff';
+  for (const st of stars){ pctx.globalAlpha = st.a; pctx.fillRect(st.x,st.y,st.r,st.r); }
+  pctx.globalAlpha = 1;
+  const {R,cx,cy} = pickGeom();
+  drawGlobe(pctx,cx,cy,R,PK.lon,PK.lat,{});
+  if (PK.hover){
+    const q = P(PK.hover.lon,PK.hover.lat,PK.lon,PK.lat,R,cx,cy);
+    if (q.v){ pctx.beginPath(); pctx.arc(q.x,q.y,10,0,TAU); pctx.strokeStyle = '#fff'; pctx.lineWidth = 2.5; pctx.stroke(); }
+  }
+  requestAnimationFrame(pickDraw);
+}
+function pickAt(x, y, rad){
+  const {R,cx,cy} = pickGeom(); let best = null, bd = rad*rad;
+  for (const d of DOTS){ const q = P(d.lon,d.lat,PK.lon,PK.lat,R,cx,cy); if (!q.v) continue; const dd = (q.x-x)**2 + (q.y-y)**2; if (dd < bd){ bd = dd; best = d.c; } }
+  return best;
+}
+function showHover(c){ PK.hover = c; pName.replaceChildren(); if (c){ const sm = document.createElement('small'); sm.textContent = 'Toque de novo para ouvir a rádio daqui'; pName.append(`${c.nome} · ${c.pais}`, sm); } }
+function openPick(){
+  if (!$('#gate').classList.contains('off')) return;
+  PK.lon = cur ? cur.lon : 0; PK.lat = cur ? cur.lat : 0; PK.k = 1; PK.on = true; PK.hover = null; pName.replaceChildren(); pick.hidden = false; $('#pq').value = '';
+  requestAnimationFrame(pickDraw);
+}
+function closePick(){ PK.on = false; pick.hidden = true; }
+function pickCity(c){ closePick(); if (paused) togglePause(); go(order.indexOf(c)); }
+pc.addEventListener('pointerdown', e => { pc.setPointerCapture(e.pointerId); PK.drag = {x:e.clientX, y:e.clientY, moved:false}; pc.style.cursor = 'grabbing'; });
+pc.addEventListener('pointermove', e => {
+  const d = PK.drag;
+  if (d){
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
+    if (d.moved){
+      const {R} = pickGeom();
+      PK.lon -= dx/R*57.3/Math.max(.35, Math.cos(PK.lat*Math.PI/180));
+      PK.lat = Math.max(-80, Math.min(80, PK.lat + dy/R*57.3));
+      d.x = e.clientX; d.y = e.clientY;
+    }
+  } else if (e.pointerType === 'mouse') showHover(pickAt(e.clientX, e.clientY, 14));
+});
+pc.addEventListener('pointerup', e => {
+  const d = PK.drag; PK.drag = null; pc.style.cursor = 'grab';
+  if (!d || d.moved) return;
+  const c = pickAt(e.clientX, e.clientY, e.pointerType === 'mouse' ? 14 : 22);
+  if (!c) return showHover(null);
+  if (PK.hover === c) pickCity(c); else showHover(c);
+});
+pc.addEventListener('wheel', e => { e.preventDefault(); PK.k = Math.max(.7, Math.min(5, PK.k * (e.deltaY < 0 ? 1.15 : .87))); }, {passive:false});
+$('#zIn').onclick = () => PK.k = Math.min(5, PK.k*1.4);
+$('#zOut').onclick = () => PK.k = Math.max(.7, PK.k/1.4);
+$('#pClose').onclick = closePick;
+$('#pq').addEventListener('change', e => { const c = byLabel.get(e.target.value); if (c){ PK.lon = c.lon; PK.lat = c.lat; showHover(c); } });
+$('#bMap').onclick = openPick;
+$('#mini').onclick = openPick;
+$('#mini').title = 'Toque para escolher uma cidade no globo';
+$('#bAuto').onclick = () => setAuto(!auto);
+$('#bOther').onclick = otherStation;
+$('#bPrev').onclick = () => { go(pos-1); };
+$('#skip').onclick = () => go(pos+1);
 $('#bPause').onclick = togglePause;
 $('#bOpts').onclick = openOpts;
 $('#bFull').onclick = toggleFull;
 document.addEventListener('dblclick', () => { if (!opts.classList.contains('on')) toggleFull(); });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && PK.on) return closePick();
   if (e.key === 'Escape' && opts.classList.contains('on')) return closeOpts();
-  if (opts.classList.contains('on') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (PK.on || opts.classList.contains('on') || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (k === 'arrowright' || k === 'n') go(pos+1);
-  else if (k === 'arrowleft' || k === 'p') go(pos-1);
+  if (k === 'arrowright' || k === 'n') { go(pos+1); }
+  else if (k === 'arrowleft' || k === 'p') { go(pos-1); }
   else if (k === ' ') { e.preventDefault(); togglePause(); }
   else if (k === 'f') toggleFull();
   else if (k === 'm') setVol(null, !muted);
   else if (k === 'arrowup'){ e.preventDefault(); setVol(vol + .1, false); }
   else if (k === 'arrowdown'){ e.preventDefault(); setVol(vol - .1, false); }
+  else if (k === 'g') openPick();
+  else if (k === 'a') setAuto(!auto);
+  else if (k === 'r') otherStation();
   else if (k === 'o') { e.preventDefault(); openOpts(); }
 });
 let idle;
@@ -2616,7 +2747,7 @@ secs = Math.max(15, Math.min(7200, +secsEl.value || 120));
 setVol(store.get('radio.vol') != null ? +store.get('radio.vol') : 0.8, false);
 resize();
 requestAnimationFrame(loop);
-if (qs.has('teste')) { window.__t = {DATA, buildOrder, findStations}; window.__r = () => ({phase, pos, city: cur && cur.nome, station: lastStation && lastStation.name, mode: shownInfo && shownInfo.mode, paused, src: audio.src}); }
+if (qs.has('teste')) { window.__t = {DATA, buildOrder, findStations, P, pickGeom, PK, order: () => order}; window.__r = () => ({phase, pos, city: cur && cur.nome, station: lastStation && lastStation.name, mode: shownInfo && shownInfo.mode, paused, src: audio.src}); }
 // o navegador só deixa tocar som depois de um toque: a tela inicial cumpre esse papel
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 function begin(full){
@@ -2624,6 +2755,7 @@ function begin(full){
   $('#gate').classList.add('off');
   if (full) toggleFull();
   go(0); wake();
+  setTimeout(() => say('Toque no globinho (canto superior) para escolher uma cidade, ou em Pular para ir para outra.', 8000), 9000);
 }
 $('#bStart').onclick = () => begin(false);
 $('#bStartFull').onclick = () => begin(true);

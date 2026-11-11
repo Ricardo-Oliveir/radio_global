@@ -15,3 +15,21 @@ Tela cheia que viaja por quase 2.000 cidades em mais de 200 países: o globo voa
 
 ## Controles
 ← → pular · espaço pausa · M mudo · ↑ ↓ volume · F tela cheia · O opções (tempo por cidade, padrão 120 s; 3600 = uma cidade por hora)
+
+## Fixar e escolher
+- **Fixar** (tecla X): fica na rádio atual sem passar para a próxima cidade. Clique de novo para voltar ao modo aleatório.
+- **Escolher no globo** (tecla G): abre um globo para girar (arrastar) e dar zoom (roda do mouse ou + e −). Toque num ponto para ver a cidade e toque de novo para ouvir a rádio dela. Também dá para buscar a cidade pelo nome. Escolher uma cidade já deixa a rádio fixada.
+- **Outra rádio** (tecla R): troca por outra rádio da mesma cidade ou região.
+- **Próxima / Anterior / setas**: voltam ao modo aleatório.
+
+## Como o site toca agora
+O site fica na cidade e na rádio atuais até você agir: **Pular ▶** (botão rosa, sempre visível) vai para a próxima cidade da ordem aleatória. Para escolher, toque no globinho do canto superior ou em **Escolher no globo** (tecla G). Quem quiser a troca sozinha liga **Troca automática** (tecla A), no tempo definido em Opções.
+
+## Google AdSense
+1. Crie a conta em adsense.google.com e adicione o endereço do seu site (o GitHub Pages ou um domínio próprio; domínio próprio costuma ser aprovado com mais facilidade).
+2. Crie um bloco de anúncio do tipo "Display" e anote o **ID do editor** (`ca-pub-...`) e o **número do bloco**.
+3. No `index.html`, procure `const ADS =` e preencha `client` e `slot`. Quando preenchido, aparece uma faixa de anúncio de 90 px na base da tela e o link "Privacidade".
+4. Edite `ads.txt` trocando `pub-XXXXXXXXXXXXXXXX` pelo seu ID (sem o `ca-`), e escreva seu e-mail em `privacidade.html`. Mantenha os dois arquivos na raiz do repositório.
+5. Em AdSense, ative a mensagem de consentimento (Privacidade e mensagens), exigida para visitantes da Europa e do Reino Unido.
+
+O AdSense só começa a pagar depois que aprova o site, e pode recusar sites com pouco texto. Se recusar, acrescente uma página com texto sobre o projeto e peça nova análise.
