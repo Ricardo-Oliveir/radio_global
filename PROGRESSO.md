@@ -21,3 +21,10 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - O ID de editor `ca-pub-6760898010595076` está em `site.config.json` (`adsClient`). O build injeta a tag oficial do AdSense no `<head>` de todas as páginas e gera o `ads.txt` com esse ID. Antes do consentimento, o site pede só anúncios não personalizados.
 - Para os anúncios aparecerem falta o número do bloco de anúncio (`GOOGLE_ADSENSE_SLOT`, só dígitos), criado em AdSense > Anúncios > Por bloco de anúncios.
 - O bloco "Desenvolvido por" no rodapé aparece quando `site.config.json` tem `dev.name` ou links https preenchidos (ou pelas variáveis `DEV_NAME`, `LINKEDIN_URL`, `GITHUB_URL`).
+
+## Parte 4 — globo real, viagem, páginas no app, redes (feito)
+- Globo com textura real da Terra (assets/img/earth.jpg se existir; senão NASA Blue Marble via CDN; senão mapa vetorial). Renderização por pixel em canvas.
+- Viagem (assets/js/trip.js): rota em círculo máximo, paradas em cidades reais do cities.json, troca de rádio a cada parada, pausar/próxima/encerrar.
+- Sobre, Contato, Privacidade, Cookies e Termos abrem dentro do app: o player não para. Acesso direto à URL continua estático.
+- Rodapé: "Desenvolvido por" + só ícones (LinkedIn, GitHub). Página contato.html.
+- Pendente: validar textura/CDN no navegador real; e-mail público de contato (CONTACT_EMAIL); slot do AdSense.

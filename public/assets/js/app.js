@@ -5,6 +5,7 @@ import { Globe } from './globe.js';
 import { clockInfo } from './clock.js';
 import { mountAds, applyConsent, adsEnabled } from './ads.js';
 import config from './config.js';
+import { Trip } from './trip.js';
 
 const player = new Player();
 const S = {
@@ -13,7 +14,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'assistente', 'aiForm', 'aiQ', 'aiStatus', 'aiGrid', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'assistente', 'aiForm', 'aiQ', 'aiStatus', 'aiGrid', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -178,6 +179,7 @@ function paintClock(){
 setInterval(paintClock, 1000);
 const NOTES = { city: 'Estações com o nome desta cidade.', near: 'Estações cadastradas até 80 km daqui.', country: 'Sem estação cadastrada na cidade. Mostrando as mais ouvidas do país.', none: 'Nenhuma estação cadastrada para este local.' };
 async function selectCity(c, { play = true, fly = true, keepList = false } = {}){
+  if (fly && trip && trip.active) trip.pause();
   S.city = c; const tok = ++S.sel; S.seen.add(c);
   globe && (globe.setSelected(c), fly && globe.flyTo(c));
   E.locFlag.hidden = false; E.locFlag.src = flagUrl(c.c); E.locCity.textContent = c.n; E.locCountry.textContent = c.p;
@@ -215,7 +217,7 @@ function armAuto(){
 let globe = null;
 function initGlobe(){
   globe = new Globe(E.globe, E.globeWrap, S.cities, {
-    onSelect: c => { player.unlock(); selectCity(c); },
+    onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c); },
     onHover: c => { if (c) E.globeHint.textContent = `${c.n}, ${c.p}. Toque para ouvir.`; else if (S.city) E.globeHint.textContent = `${S.city.n}, ${S.city.p}.`; },
     onMiss: () => { E.globeHint.textContent = 'Nenhuma cidade perto desse ponto. Gire o globo ou aproxime.'; },
     onFirstDraw: () => E.globePoster.classList.add('off')
@@ -347,6 +349,71 @@ if ('mediaSession' in navigator){
 document.addEventListener('pointerdown', () => player.unlock(), { once: true, capture: true });
 document.addEventListener('keydown', () => player.unlock(), { once: true, capture: true });
 
+
+/* ---------- viagem ---------- */
+let trip = null;
+const km = n => n.toLocaleString('pt-BR') + ' km';
+function paintTrip(i){
+  E.tripBar.hidden = !i || (i.state === 'off');
+  if (!i || i.state === 'off') return;
+  const done = i.state === 'done';
+  E.tripTitle.textContent = `${i.from.n} → ${i.to.n}`;
+  E.tripStop.textContent = done ? `Chegamos a ${i.city.n}, ${i.city.p}.` : i.state === 'flying' ? `Voando para ${i.next.n}, ${i.next.p}…` : `Parada ${i.i + 1} de ${i.n}: ${i.city.n}, ${i.city.p}`;
+  E.tripProg.textContent = done ? 'Viagem concluída.' : `${km(i.kmLeft)} restantes${i.state === 'dwell' ? ` · segue em ${Math.ceil(i.left / 1000)} s` : i.state === 'paused' ? ' · em pausa' : ''}`;
+  E.tripFill.style.width = Math.round(Math.max(0, Math.min(1, done ? 1 : i.pct)) * 100) + '%';
+  const paused = i.state === 'paused';
+  setIcon(E.tripPause, paused ? 'play' : 'pause'); E.tripPause.setAttribute('aria-label', paused ? 'Continuar a viagem' : 'Pausar a viagem'); E.tripPause.disabled = done; E.tripNext.disabled = done;
+}
+function initTrip(){
+  trip = new Trip({ globe, onChange: paintTrip, onArrive: c => { selectCity(c, { fly: false }); } });
+  const opts = () => S.cities.map((c, i) => [c, i]).sort((a, b) => (a[0].p + a[0].n).localeCompare(b[0].p + b[0].n, 'pt')).map(([c, i]) => h('option', { value: i, text: `${c.n} · ${c.p}` }));
+  const fill = () => {
+    if (E.tripFrom.options.length) return;
+    E.tripFrom.append(...opts()); E.tripTo.append(...opts());
+    const idx = n => S.cities.findIndex(c => c.n === n), from = idx('Jacutinga'), to = idx('Tóquio');
+    E.tripFrom.value = String(from >= 0 ? from : 0); E.tripTo.value = String(to >= 0 ? to : S.cities.length - 1);
+  };
+  E.tripBtn.addEventListener('click', () => { fill(); E.tripDlg.showModal(); });
+  E.tripGo.addEventListener('click', () => {
+    const A = S.cities[+E.tripFrom.value], B = S.cities[+E.tripTo.value];
+    if (!A || !B || A === B){ E.tripDlg.close(); return; }
+    player.unlock(); trip.start(S.cities, A, B, +E.tripDwell.value);
+  });
+  E.tripPause.addEventListener('click', () => trip.togglePause());
+  E.tripNext.addEventListener('click', () => trip.next());
+  E.tripEnd.addEventListener('click', () => { trip.stop(); globe.setSpin(S.opts.spin); });
+}
+
+/* ---------- páginas (Sobre, Contato…) dentro do app, para o player continuar tocando ---------- */
+const DOC = /^\/(sobre|privacidade|cookies|termos|contato)\.html$/;
+const underDoc = () => [document.getElementById('main'), document.querySelector('.site-footer'), E.consent.parentElement, E.consent.parentElement.nextElementSibling].filter(Boolean);
+const fitDoc = () => { E.pageView.style.top = Math.ceil(document.querySelector('.site-header').getBoundingClientRect().bottom) + 'px'; };
+function setDocOpen(on){ E.pageView.hidden = !on; underDoc().forEach(el => el.toggleAttribute('inert', on)); if (on) fitDoc(); }
+addEventListener('resize', () => { if (!E.pageView.hidden) fitDoc(); });
+async function openDoc(url, push = true){
+  try {
+    const u = new URL(url, location.origin), html = await (await fetch(u.pathname)).text(), d = new DOMParser().parseFromString(html, 'text/html'), m = d.querySelector('main.doc');
+    if (!m) throw new Error('doc');
+    E.pageBody.replaceChildren(document.importNode(m, true)); E.pageBody.firstChild.removeAttribute('id'); document.title = d.title;
+    setDocOpen(true); E.pageView.scrollTop = 0; if (push) history.pushState({ doc: u.pathname }, '', u.pathname + u.hash);
+    const t = E.pageBody.querySelector('h1'); if (t){ t.tabIndex = -1; t.focus({ preventScroll: true }); }
+    if (u.hash){ const el = E.pageBody.querySelector(u.hash); el && el.scrollIntoView(); }
+  } catch { location.href = url; }
+}
+function closeDoc(push = true){
+  if (E.pageView.hidden) return;
+  setDocOpen(false); E.pageBody.replaceChildren(); document.title = 'WAVE GLOBAL · The world. One frequency.';
+  if (push && DOC.test(location.pathname)) history.pushState({}, '', '/');
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+  const u = new URL(a.href, location.href); if (u.origin !== location.origin) return;
+  if (DOC.test(u.pathname)){ e.preventDefault(); openDoc(u.pathname + u.hash); }
+  else if (!E.pageView.hidden && (u.pathname === '/' || u.pathname === '/index.html')){ e.preventDefault(); closeDoc(); if (u.hash){ const el = document.querySelector(u.hash); el && el.scrollIntoView(); } else scrollTo({ top: 0 }); }
+});
+E.pageBack.addEventListener('click', () => { closeDoc(); });
+addEventListener('popstate', () => { if (DOC.test(location.pathname)) openDoc(location.pathname + location.hash, false); else closeDoc(false); });
+
 /* ---------- início ---------- */
 async function boot(){
   const vol = store.get('vol', 0.8); E.pVol.value = vol; player.setVolume(vol); player.setMuted(store.get('muted', false)); paintMute(); paintPlayer(); refreshFavUI();
@@ -357,7 +424,7 @@ async function boot(){
   E.countrySel.append(...S.countries.map(c => h('option', { value: c.c, text: c.p })));
   const last = store.get('city'); if (last){ const [n, cc] = String(last).split('|'); S.city = (S.byCC.get(cc) || []).find(c => c.n === n) || null; }
   if (S.city){ E.locFlag.hidden = false; E.locFlag.src = flagUrl(S.city.c); E.locCity.textContent = S.city.n; E.locCountry.textContent = S.city.p; E.clock.hidden = false; paintClock(); }
-  initGlobe();
+  initGlobe(); initTrip();
   const q = new URLSearchParams(location.search).get('q'); if (q){ E.q.value = q; doSearch(); }
   // descoberta só quando a seção se aproxima da tela
   const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); renderTab(); } }, { rootMargin: '400px' });
@@ -365,6 +432,6 @@ async function boot(){
   initAI();
   const idle = window.requestIdleCallback || (f => setTimeout(f, 1200));
   idle(() => { mountAds(); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
-  if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, selectCity, playStation, randomCity, renderTab, radio };
+  if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, trip, selectCity, playStation, randomCity, renderTab, radio };
 }
 boot().catch(e => { E.gridStatus.textContent = 'Não foi possível carregar os dados do site. Recarregue a página.'; console.error(e); });

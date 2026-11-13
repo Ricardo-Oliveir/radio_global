@@ -2,10 +2,12 @@
 import { loadScript, rad, distKm } from './util.js';
 const LIBS = ['https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js', 'https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js', 'https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js'];
 const LAND = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json';
+const TEX = ['/assets/img/earth.jpg', 'https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/earth-blue-marble.jpg', 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg', 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'];
+const loadImg = u => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.decoding = 'async'; i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = u; });
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const vec = (lon, lat) => [Math.cos(lat * rad) * Math.cos(lon * rad), Math.cos(lat * rad) * Math.sin(lon * rad), Math.sin(lat * rad)];
 const unvec = v => [Math.atan2(v[1], v[0]) / rad, Math.asin(Math.max(-1, Math.min(1, v[2]))) / rad];
-function slerp(a, b, t){
+export function slerp(a, b, t){
   const A = vec(...a), B = vec(...b), d = Math.max(-1, Math.min(1, A[0] * B[0] + A[1] * B[1] + A[2] * B[2])), w = Math.acos(d);
   if (w < 1e-6) return b;
   const s = Math.sin(w), x = Math.sin((1 - t) * w) / s, y = Math.sin(t * w) / s;
@@ -25,6 +27,8 @@ export class Globe {
     this.canvas.width = Math.round(r.width * this.dpr); this.canvas.height = Math.round(r.height * this.dpr); this.invalidate();
   }
   async loadMap(){
+    // 1) textura real da Terra (imagem de satélite); 2) se falhar, mapa vetorial estilizado
+    if (await this.loadTexture()){ this.ready = true; this.invalidate(); return; }
     try {
       for (const s of LIBS) await loadScript(s);
       const topo = await (await fetch(LAND)).json();
@@ -35,6 +39,37 @@ export class Globe {
     } catch { this.mapFailed = true; }
     this.ready = true; this.invalidate();
   }
+  async loadTexture(){
+    for (const u of (window.__WG_TEX || TEX)){
+      try {
+        const im = await loadImg(u), w = Math.min(im.naturalWidth, 2048), hh = Math.round(w / 2);
+        if (im.naturalWidth < 256 || Math.abs(im.naturalWidth / im.naturalHeight - 2) > .08) continue;
+        const c = document.createElement('canvas'); c.width = w; c.height = hh; const x = c.getContext('2d', { willReadFrequently: true });
+        x.drawImage(im, 0, 0, w, hh); this.tex = { w, h: hh, d: x.getImageData(0, 0, w, hh).data }; return true;
+      } catch {}
+    }
+    return false;
+  }
+  // Esfera com a textura: para cada pixel do disco, acha longitude/latitude (projeção ortográfica inversa) e lê a cor da imagem.
+  drawTex(R, cx, cy, q){
+    const { tex, ctx } = this, S = Math.max(8, Math.round(2 * R * this.dpr * q));
+    if (!this.off || this.off.width !== S){ this.off = document.createElement('canvas'); this.off.width = this.off.height = S; this.offCtx = this.off.getContext('2d'); this.img = this.offCtx.createImageData(S, S); }
+    const d = this.img.data, T = tex.d, tw = tex.w, th = tex.h, φ0 = this.lat * rad, s0 = Math.sin(φ0), c0 = Math.cos(φ0), λ0 = this.lon * rad, TAU = Math.PI * 2;
+    for (let j = 0; j < S; j++){
+      const y = 1 - 2 * (j + .5) / S;
+      for (let i = 0; i < S; i++){
+        const x = 2 * (i + .5) / S - 1, r2 = x * x + y * y, k = (j * S + i) * 4;
+        if (r2 >= 1){ d[k + 3] = 0; continue; }
+        const z = Math.sqrt(1 - r2), φ = Math.asin(y * c0 + z * s0), λ = λ0 + Math.atan2(x, z * c0 - y * s0);
+        let u = (λ / TAU + .5) % 1; if (u < 0) u += 1;
+        let tx = (u * tw) | 0, ty = ((.5 - φ / Math.PI) * th) | 0; if (ty < 0) ty = 0; else if (ty >= th) ty = th - 1; if (tx >= tw) tx = tw - 1;
+        const t = (ty * tw + tx) * 4, l = Math.min(1.1, .42 + .78 * (-.26 * x + .32 * y + .91 * z)), rim = (1 - z) ** 3 * 70;
+        d[k] = Math.min(255, T[t] * l + rim * .35); d[k + 1] = Math.min(255, T[t + 1] * l + rim * .6); d[k + 2] = Math.min(255, T[t + 2] * l + rim); d[k + 3] = 255;
+      }
+    }
+    this.offCtx.putImageData(this.img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(this.off, cx - R, cy - R, 2 * R, 2 * R);
+  }
+  setRoute(r){ this.route = r; this.invalidate(); }
   project(lon, lat){
     const φ = lat * rad, dl = (lon - this.lon) * rad, φ0 = this.lat * rad, R = this.R, cx = this.W / 2, cy = this.H / 2;
     const cosc = Math.sin(φ0) * Math.sin(φ) + Math.cos(φ0) * Math.cos(φ) * Math.cos(dl);
@@ -89,7 +124,9 @@ export class Globe {
     const sea = ctx.createRadialGradient(cx - R * .3, cy - R * .35, R * .1, cx, cy, R);
     sea.addColorStop(0, '#2a67d8'); sea.addColorStop(.55, '#123a96'); sea.addColorStop(1, '#091f5b');
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.2832); ctx.clip(); ctx.fillStyle = sea; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
-    if (this.path){
+    if (this.tex){
+      const moving = !!(this.anim || this.ptrs.size || (this.spin && now - this.lastTouch > 6000)); this.drawTex(R, cx, cy, moving ? .55 : 1);
+    } else if (this.path){
       this.proj.rotate([-this.lon, -this.lat]).scale(R).translate([cx, cy]);
       ctx.beginPath(); this.path(this.grat); ctx.strokeStyle = 'rgba(170,205,255,.13)'; ctx.lineWidth = .6; ctx.stroke();
       const lg = ctx.createLinearGradient(cx, cy - R, cx, cy + R);
@@ -101,12 +138,19 @@ export class Globe {
       for (let lo = -180; lo < 180; lo += 30){ ctx.beginPath(); let m = true; for (let la = -90; la <= 90; la += 6){ const p = this.project(lo, la); if (p.v){ m ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); m = false; } else m = true; } ctx.stroke(); }
     }
     const shade = ctx.createRadialGradient(cx - R * .25, cy - R * .3, R * .4, cx, cy, R);
-    shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(2,8,30,.55)'); ctx.fillStyle = shade; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+    shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, this.tex ? 'rgba(2,8,30,.28)' : 'rgba(2,8,30,.55)'); ctx.fillStyle = shade; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
     ctx.restore();
     const r = Math.max(1.3, Math.min(3, R * .0058)); ctx.beginPath();
     for (const c of this.cities){ const p = this.project(c.o, c.a); if (p.v){ ctx.moveTo(p.x + r, p.y); ctx.arc(p.x, p.y, r, 0, 6.2832); } }
     ctx.fillStyle = 'rgba(190,220,255,.9)'; ctx.fill();
     if (R > 110){ ctx.beginPath(); for (const c of this.cities){ const p = this.project(c.o, c.a); if (p.v){ ctx.moveTo(p.x + r * 2.6, p.y); ctx.arc(p.x, p.y, r * 2.6, 0, 6.2832); } } ctx.fillStyle = 'rgba(120,180,255,.13)'; ctx.fill(); }
+    if (this.route){
+      const { pts, idx, done, flying } = this.route, line = (a, b, col, lw, dash) => { ctx.beginPath(); let m = true; for (let i = a; i <= b; i++){ const p = this.project(pts[i][0], pts[i][1]); if (p.v){ m ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); m = false; } else m = true; } ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke(); ctx.setLineDash([]); };
+      line(idx[Math.min(done, idx.length - 1)], pts.length - 1, 'rgba(255,255,255,.7)', 2, [2, 7]);
+      line(0, idx[Math.min(done, idx.length - 1)], '#ff5d73', 3.2, []);
+      ctx.beginPath(); idx.forEach((i, n) => { const p = this.project(pts[i][0], pts[i][1]); if (p.v){ ctx.moveTo(p.x + 4.5, p.y); ctx.arc(p.x, p.y, 4.5, 0, 6.2832); } }); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#ff5d73'; ctx.stroke();
+      if (flying){ const p = this.project(this.lon, this.lat); ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, 6.2832); ctx.fillStyle = 'rgba(255,93,115,.35)'; ctx.fill(); ctx.beginPath(); ctx.arc(p.x, p.y, 5.5, 0, 6.2832); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#ff5d73'; ctx.stroke(); }
+    }
     for (const [c, col, rr] of [[this.hover, '#ffffff', 5], [this.sel, '#ff5d73', 6]]){
       if (!c) continue; const p = this.project(c.o, c.a); if (!p.v) continue;
       if (c === this.sel && !this.reduce && now - this.selT < 2600){ const t = (now - this.selT) / 2600; ctx.beginPath(); ctx.arc(p.x, p.y, rr + 6 + t * 30, 0, 6.2832); ctx.strokeStyle = col; ctx.globalAlpha = .6 * (1 - t); ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; more = true; }
@@ -134,7 +178,7 @@ export class Globe {
       }
     });
     const up = e => {
-      const p = this.ptrs.get(e.pointerId); this.ptrs.delete(e.pointerId); this.pinch = null; this.lastTouch = performance.now();
+      const p = this.ptrs.get(e.pointerId); this.ptrs.delete(e.pointerId); this.pinch = null; this.lastTouch = performance.now(); this.invalidate();
       if (!p || p.moved || e.type === 'pointercancel') return;
       const box = cv.getBoundingClientRect(), x = e.clientX - box.left, y = e.clientY - box.top;
       let c = this.hit(x, y, e.pointerType === 'mouse' ? 13 : 24);

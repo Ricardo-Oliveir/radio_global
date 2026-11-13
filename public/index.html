@@ -53,6 +53,7 @@
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600 7 7M17 17l1.400 1.400M5.600 18.400 7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18l-1.800-5.400-5.700-1.800L10.200 9 12 3.500ZM19 16l.8 2.200L22 19l-2.200.8L19 22l-.8-2.200L16 19l2.200-.8L19 16Z" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M21 4 3 11l6.500 2.500L12 20l2.500-5.500L21 4ZM9.500 13.500 21 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.100 7-11.500A7 7 0 0 0 5 9.500C5 14.900 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.500" r="2.500" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
 </svg>
 
@@ -74,6 +75,7 @@
       <a href="#descobrir">Descobrir</a>
       <a href="#favoritos">Favoritos <span class="count" id="favCount" hidden>0</span></a>
       <a href="/sobre.html">Sobre</a>
+      <a href="/contato.html">Contato</a>
     </nav>
   </div>
   <div class="wrap"><div class="search-panel" id="searchPanel" hidden aria-live="polite"></div></div>
@@ -106,9 +108,19 @@
           <button class="icon-btn" id="zIn" type="button" aria-label="Aproximar"><svg class="ic"><use href="#i-plus"/></svg></button>
         </div>
         <button class="btn" id="randomBtn" type="button"><svg class="ic"><use href="#i-swap"/></svg><span>Cidade aleatória</span></button>
+        <button class="btn" id="tripBtn" type="button"><svg class="ic"><use href="#i-plane"/></svg><span>Viagem</span></button>
         <label class="select-wrap"><span class="sr-only">Ir para um país</span>
           <select id="countrySel"><option value="">Ir para um país…</option></select></label>
         <button class="icon-btn" id="fullBtn" type="button" aria-label="Tela cheia"><svg class="ic"><use href="#i-full"/></svg></button>
+      </div>
+      <div class="trip-bar" id="tripBar" hidden role="group" aria-label="Viagem em andamento">
+        <div class="trip-info"><b id="tripTitle"></b><span id="tripStop"></span><span class="dim" id="tripProg"></span></div>
+        <div class="trip-ctl">
+          <button class="icon-btn" id="tripPause" type="button" aria-label="Pausar a viagem"><svg class="ic"><use href="#i-pause"/></svg></button>
+          <button class="icon-btn" id="tripNext" type="button" aria-label="Ir para a próxima parada"><svg class="ic"><use href="#i-next"/></svg></button>
+          <button class="icon-btn" id="tripEnd" type="button" aria-label="Encerrar a viagem"><svg class="ic"><use href="#i-close"/></svg></button>
+        </div>
+        <div class="trip-line" aria-hidden="true"><i id="tripFill"></i></div>
       </div>
       <p class="hint" id="globeHint">Toque num ponto para escolher a cidade. Arraste para girar.</p>
     </div>
@@ -186,7 +198,7 @@
     <nav aria-label="Legal"><h2>Legal</h2><ul><li><a href="/privacidade.html">Política de privacidade</a></li><li><a href="/cookies.html">Política de cookies</a></li><li><a href="/termos.html">Termos de uso</a></li><li><button class="linklike" id="consentBtn" type="button">Preferências de anúncios</button></li></ul></nav>
   </div>
   <div class="wrap"><div class="ad" data-ad="footer" data-show="all" hidden></div></div>
-  <div class="wrap dev"><span>Desenvolvido por <b>Luiz Ricardo de Oliveira</b></span><ul aria-label="Redes do desenvolvedor"><li><a href="https://www.linkedin.com/in/luizricardodeoliveira/" target="_blank" rel="noopener noreferrer">LinkedIn<span class="sr-only"> (abre em nova aba)</span></a></li><li><a href="https://github.com/Ricardo-Oliveir" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (abre em nova aba)</span></a></li></ul></div><div class="wrap copy"><p>© <span id="year">2026</span> WAVE GLOBAL. Todos os direitos reservados. Os nomes, marcas e logotipos das emissoras pertencem aos seus titulares.</p></div>
+  <div class="wrap dev"><span>Desenvolvido por</span><ul aria-label="Redes do desenvolvedor"><li><a class="soc" href="https://www.linkedin.com/in/luizricardodeoliveira/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn (abre em nova aba)" title="LinkedIn"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="3.500" fill="none" stroke="currentColor" stroke-width="1.800"/><rect x="7" y="10" width="2" height="7" fill="currentColor"/><circle cx="8" cy="7.200" r="1.200" fill="currentColor"/><path d="M11 10h2v1c.5-.8 1.300-1.200 2.300-1.200 2 0 2.700 1.300 2.700 3.200V17h-2v-3.500c0-1-.3-1.700-1.300-1.700s-1.700.7-1.700 1.800V17h-2z" fill="currentColor"/></svg></a></li><li><a class="soc" href="https://github.com/Ricardo-Oliveir" target="_blank" rel="noopener noreferrer" aria-label="GitHub (abre em nova aba)" title="GitHub"><svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.580 0 0 3.580 0 8c0 3.540 2.290 6.530 5.470 7.590.4.070.55-.170.55-.380 0-.190-.010-.820-.010-1.490-2.010.370-2.530-.490-2.690-.940-.090-.230-.480-.940-.820-1.130-.280-.150-.680-.520-.010-.530.630-.010 1.080.580 1.230.820.720 1.210 1.870.870 2.330.660.070-.520.280-.870.510-1.070-1.780-.200-3.640-.890-3.640-3.950 0-.870.310-1.590.820-2.150-.080-.200-.360-1.020.080-2.120 0 0 .670-.210 2.200.820.640-.180 1.320-.270 2-.270.680 0 1.360.090 2 .270 1.530-1.040 2.200-.820 2.200-.820.440 1.100.160 1.920.080 2.120.510.560.820 1.270.820 2.150 0 3.070-1.870 3.750-3.650 3.950.290.250.540.730.540 1.480 0 1.070-.010 1.930-.010 2.200 0 .210.150.460.550.380A8.013 8.013 0 0 0 16 8c0-4.420-3.580-8-8-8Z"/></svg></a></li></ul></div><div class="wrap copy"><p>© <span id="year">2026</span> WAVE GLOBAL. Todos os direitos reservados. <a href="/sobre.html">Sobre</a> · <a href="/contato.html">Contato</a> · <a href="/privacidade.html">Privacidade</a> · <a href="/cookies.html">Cookies</a> · <a href="/termos.html">Termos</a>. Os nomes, marcas e logotipos das emissoras pertencem aos seus titulares.</p></div>
 </footer>
 
 <section class="player" id="player" aria-label="Player de rádio">
@@ -213,6 +225,19 @@
   </div>
   <p class="p-status" id="pStatus" role="status" aria-live="polite"></p>
 </section>
+
+<dialog id="tripDlg" aria-labelledby="tripTitleDlg">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="tripTitleDlg">Fazer uma viagem</h2><button class="icon-btn" value="close" aria-label="Fechar"><svg class="ic"><use href="#i-close"/></svg></button></div>
+    <p class="dim" style="margin:0 0 12px">O globo viaja devagar de uma cidade a outra, passa por cidades do caminho e sintoniza uma rádio local em cada parada.</p>
+    <label class="row"><span><b>Saída</b></span><select id="tripFrom"></select></label>
+    <label class="row"><span><b>Destino</b></span><select id="tripTo"></select></label>
+    <label class="row"><span><b>Tempo em cada parada</b></span><select id="tripDwell"><option value="30000">30 segundos</option><option value="60000" selected>1 minuto</option><option value="120000">2 minutos</option><option value="300000">5 minutos</option></select></label>
+    <div class="dlg-foot"><button class="btn" value="cancel">Cancelar</button><button class="btn btn-primary" id="tripGo" value="go">Iniciar viagem</button></div>
+  </form>
+</dialog>
+
+<section class="page-view" id="pageView" hidden aria-label="Página"><div class="page-in"><button class="btn" id="pageBack" type="button"><svg class="ic"><use href="#i-prev"/></svg><span>Voltar ao globo</span></button><div id="pageBody"></div></div></section>
 
 <dialog id="optsDlg" aria-labelledby="optsTitle">
   <form method="dialog" class="dlg">
