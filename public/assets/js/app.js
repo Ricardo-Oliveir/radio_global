@@ -10,7 +10,7 @@ const player = new Player();
 const S = {
   cities: [], byCC: new Map(), countries: [], city: null, station: null, queue: [], qi: 0, sel: 0,
   nav: [], ni: -1, seen: new Set(), favs: store.get('favs', []), history: store.get('history', []),
-  opts: Object.assign({ auto: false, mins: 5, spin: false }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
+  opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
 for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'assistente', 'aiForm', 'aiQ', 'aiStatus', 'aiGrid', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year'])

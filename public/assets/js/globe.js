@@ -18,7 +18,7 @@ export class Globe {
     new IntersectionObserver(e => { this.visible = e[0].isIntersecting; if (this.visible) this.draw(); }, { threshold: 0 }).observe(wrap);
     this.bind(); this.resize();
   }
-  get R(){ return Math.min(this.W, this.H) / 2 * .93 * this.k; }
+  get R(){ return Math.min(this.W, this.H * 1.04) / 2 * .96 * this.k; }
   resize(){
     const r = this.wrap.getBoundingClientRect(); if (!r.width) return;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); this.W = r.width; this.H = r.height;
@@ -57,7 +57,7 @@ export class Globe {
     for (const c of this.cities){ const p = this.project(c.o, c.a); if (!p.v) continue; const d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd){ bd = d; best = c; } }
     return best;
   }
-  setSelected(c){ this.sel = c; this.invalidate(); }
+  setSelected(c){ this.sel = c; this.selT = performance.now(); this.invalidate(); }
   zoom(f){ this.k = Math.max(.85, Math.min(7, this.k * f)); this.invalidate(); }
   flyTo(c, k = null, ms = null){
     const to = [c.o, c.a], from = [this.lon, this.lat], k0 = this.k, k1 = k ?? Math.max(1.35, Math.min(this.k, 1.8));
@@ -106,8 +106,10 @@ export class Globe {
     const r = Math.max(1.3, Math.min(3, R * .0058)); ctx.beginPath();
     for (const c of this.cities){ const p = this.project(c.o, c.a); if (p.v){ ctx.moveTo(p.x + r, p.y); ctx.arc(p.x, p.y, r, 0, 6.2832); } }
     ctx.fillStyle = 'rgba(190,220,255,.9)'; ctx.fill();
+    if (R > 110){ ctx.beginPath(); for (const c of this.cities){ const p = this.project(c.o, c.a); if (p.v){ ctx.moveTo(p.x + r * 2.6, p.y); ctx.arc(p.x, p.y, r * 2.6, 0, 6.2832); } } ctx.fillStyle = 'rgba(120,180,255,.13)'; ctx.fill(); }
     for (const [c, col, rr] of [[this.hover, '#ffffff', 5], [this.sel, '#ff5d73', 6]]){
       if (!c) continue; const p = this.project(c.o, c.a); if (!p.v) continue;
+      if (c === this.sel && !this.reduce && now - this.selT < 2600){ const t = (now - this.selT) / 2600; ctx.beginPath(); ctx.arc(p.x, p.y, rr + 6 + t * 30, 0, 6.2832); ctx.strokeStyle = col; ctx.globalAlpha = .6 * (1 - t); ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; more = true; }
       ctx.beginPath(); ctx.arc(p.x, p.y, rr + 5, 0, 6.2832); ctx.strokeStyle = col; ctx.globalAlpha = .45; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
       ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 6.2832); ctx.fillStyle = col; ctx.fill();
       ctx.font = '600 13px Inter,system-ui,sans-serif'; const w = ctx.measureText(c.n).width + 16, lx = Math.max(4, Math.min(W - w - 4, p.x - w / 2)), ly = p.y - 34 < 4 ? p.y + 16 : p.y - 34;
