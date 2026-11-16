@@ -267,9 +267,9 @@ body.doc-page{padding-bottom:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* ---------- Globo imersivo (estilo "explorar o planeta") ---------- */
-.stage{--stage-h:calc(100dvh - var(--head-h) - var(--player-h));position:relative;isolation:isolate;max-width:none;width:100%;padding:0;gap:0;
+.stage{--stage-h:calc(100dvh - var(--head-h) - var(--player-h) - var(--banner-h,0px));position:relative;isolation:isolate;max-width:none;width:100%;padding:0;gap:0;
   display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(280px,1fr) auto auto;grid-template-areas:"intro" "globe" "bar" "loc";
-  min-height:max(560px,var(--stage-h));margin-top:0}
+  min-height:max(420px,var(--stage-h));margin-top:0}
 .stage::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(55% 55% at 50% 45%,rgba(255,150,90,.07),transparent 72%),
   radial-gradient(1.2px 1.2px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 34% 72%,#e9e2d6,transparent),radial-gradient(1.4px 1.4px at 58% 12%,#fff,transparent),radial-gradient(1px 1px at 78% 64%,#e9e2d6,transparent),radial-gradient(1.2px 1.2px at 90% 26%,#fff,transparent),radial-gradient(1px 1px at 22% 90%,#fff,transparent),radial-gradient(1px 1px at 68% 88%,#e9e2d6,transparent);
@@ -284,7 +284,7 @@ body.doc-page{padding-bottom:0}
 .loc-card{grid-area:loc;margin:0 var(--gut) var(--gut);max-height:38vh;overflow:auto;background:rgba(16,16,17,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 @media (min-width:768px){ .stage-intro .lead{display:block;margin-top:6px} }
 @media (min-width:1024px){
-  .stage{grid-template-columns:minmax(0,1fr) 392px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"intro loc" "globe loc" "bar loc";height:max(600px,var(--stage-h));min-height:0}
+  .stage{grid-template-columns:minmax(0,1fr) 392px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"intro loc" "globe loc" "bar loc";height:max(440px,var(--stage-h));min-height:0}
   .loc-card{margin:var(--gut) var(--gut) var(--gut) 0;max-height:none}
   .globe-wrap{min-height:0}
 }
@@ -429,3 +429,8 @@ body.bigglobe .stage{align-content:stretch}
 body.bigglobe .globe-wrap{display:grid;place-items:center}
 body.bigglobe.bgpanel .onair{text-align:left}
 body.bigglobe .geo-cta{display:none}
+/* telas baixas: cabeçalho da tela inicial mais enxuto para o globo ganhar espaço */
+@media (max-height:820px){.stage-intro{padding-top:10px}.stage-intro h1{font-size:clamp(18px,4.6vw,26px)}.stage-intro .lead{display:none !important}}
+/* PC: o aviso de localização fica no canto, fora do globo */
+@media (min-width:1024px){.geo-cta{justify-self:start;margin-left:var(--gut)}}
+@media (max-width:1023px){.globe-wrap{min-height:clamp(280px,50dvh,640px)}}

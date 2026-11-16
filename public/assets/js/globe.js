@@ -15,13 +15,16 @@ export function slerp(a, b, t){
 }
 export class Globe {
   constructor(canvas, wrap, cities, cb){
-    Object.assign(this, { canvas, wrap, cities, cb, ctx: canvas.getContext('2d'), lon: -30, lat: 18, k: 1, sel: null, hover: null, land: null, grat: null, W: 0, H: 0, dpr: 1, raf: 0, anim: null, visible: true, spin: false, lastTouch: 0, ptrs: new Map(), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, ready: false });
+    Object.assign(this, { canvas, wrap, cities, cb, ctx: canvas.getContext('2d'), lon: -30, lat: 18, k: 1, sel: null, hover: null, land: null, grat: null, W: 0, H: 0, padT: 0, padB: 0, dpr: 1, raf: 0, anim: null, visible: true, spin: false, lastTouch: 0, ptrs: new Map(), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, ready: false });
     new ResizeObserver(() => this.resize()).observe(wrap);
     new IntersectionObserver(e => { this.visible = e[0].isIntersecting; if (this.visible) this.draw(); }, { threshold: 0 }).observe(wrap);
     this.glc = document.createElement('canvas'); this.glc.className = 'gl'; this.glc.setAttribute('aria-hidden', 'true'); wrap.insertBefore(this.glc, canvas);
     this.bind(); this.resize();
   }
-  get R(){ return Math.min(this.W, this.H * 1.04) / 2 * .96 * this.k; }
+  get R(){ return Math.min(this.W, this.H - this.padT - this.padB) / 2 * .86 * this.k; }
+  get CY(){ return this.padT + (this.H - this.padT - this.padB) / 2; }
+  // reserva as faixas do globo que ficam cobertas (cabeçalho, player, avisos) para ele caber inteiro na parte visível
+  setPad(t, b){ t = Math.max(0, Math.round(t)); b = Math.max(0, Math.round(b)); if (t !== this.padT || b !== this.padB){ this.padT = t; this.padB = b; this.invalidate(); } }
   resize(){
     const r = this.wrap.getBoundingClientRect(); if (!r.width) return;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); this.W = r.width; this.H = r.height;
@@ -117,12 +120,12 @@ void main(){
   setRoute(r){ this.route = r; this.invalidate(); }
   setPlane(p, follow = true){ this.plane = p; this.follow = !!p && follow; this.invalidate(); }
   project(lon, lat){
-    const φ = lat * rad, dl = (lon - this.lon) * rad, φ0 = this.lat * rad, R = this.R, cx = this.W / 2, cy = this.H / 2;
+    const φ = lat * rad, dl = (lon - this.lon) * rad, φ0 = this.lat * rad, R = this.R, cx = this.W / 2, cy = this.CY;
     const cosc = Math.sin(φ0) * Math.sin(φ) + Math.cos(φ0) * Math.cos(φ) * Math.cos(dl);
     return { x: cx + R * Math.cos(φ) * Math.sin(dl), y: cy - R * (Math.cos(φ0) * Math.sin(φ) - Math.sin(φ0) * Math.cos(φ) * Math.cos(dl)), v: cosc > 0 };
   }
   inverse(x, y){
-    const R = this.R, px = (x - this.W / 2) / R, py = (this.H / 2 - y) / R, ρ = Math.hypot(px, py); if (ρ > 1) return null;
+    const R = this.R, px = (x - this.W / 2) / R, py = (this.CY - y) / R, ρ = Math.hypot(px, py); if (ρ > 1) return null;
     const c = Math.asin(ρ), φ0 = this.lat * rad;
     const φ = Math.asin(Math.cos(c) * Math.sin(φ0) + (ρ ? py * Math.sin(c) * Math.cos(φ0) / ρ : 0));
     const λ = this.lon * rad + Math.atan2(px * Math.sin(c), ρ * Math.cos(φ0) * Math.cos(c) - py * Math.sin(φ0) * Math.sin(c));
@@ -165,7 +168,7 @@ void main(){
     if (this.follow && this.plane && !this.anim && !this.ptrs.size && now - this.lastTouch > 1500){ const c = slerp([this.lon, this.lat], [this.plane.lon, this.plane.lat], 1 - Math.exp(-dt / 650)); this.lon = c[0]; this.lat = c[1]; more = true; }
     if (this.plane && this.follow) more = true;
     if (this.spin && !more && now - this.lastTouch > 6000 && !this.ptrs.size){ this.lon += .004 * dt; more = true; }
-    const { ctx, W, H, dpr } = this, R = this.R, cx = W / 2, cy = H / 2, useGL = !!(this.G && this.tex && this.tex.gl);
+    const { ctx, W, H, dpr } = this, R = this.R, cx = W / 2, cy = this.CY, useGL = !!(this.G && this.tex && this.tex.gl);
     if (useGL) this.renderGL(R, cx, cy);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
     const glow = ctx.createRadialGradient(cx, cy, R * .98, cx, cy, R * 1.16);

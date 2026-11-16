@@ -229,7 +229,7 @@ function initGlobe(){
     onFirstDraw: () => E.globePoster.classList.add('off')
   });
   globe.setSpin(S.opts.spin);
-  if (S.city) { globe.setSelected(S.city); globe.flyTo(S.city, 1.05, 1); }
+  if (S.city) { globe.setSelected(S.city); globe.flyTo(S.city, 1, 1); }
   const idle = window.requestIdleCallback || (f => setTimeout(f, 600));
   idle(() => globe.loadMap(), { timeout: 2500 });
 }
@@ -457,7 +457,22 @@ function initUpdate(){
   setInterval(check, 10 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 }
+// Faz o globo caber inteiro na parte realmente visível da tela (entre o cabeçalho e o player), no PC e no celular.
+let fitDone = false;
+new ResizeObserver(() => document.documentElement.style.setProperty('--player-h', Math.ceil(E.player.getBoundingClientRect().height) + 'px')).observe(E.player);
+const setBanner = () => { const w = E.consent.parentElement; document.documentElement.style.setProperty('--banner-h', E.consent.hidden ? '0px' : Math.ceil(w.getBoundingClientRect().height) + 'px'); };
+new ResizeObserver(setBanner).observe(E.consent.parentElement); new MutationObserver(setBanner).observe(E.consent, { attributes: true, attributeFilter: ['hidden'] }); setBanner();
+const syncPad = () => {
+  if (!globe || document.body.classList.contains('bigglobe')) return;
+  if (fitDone && scrollY > 2) return;
+  const wr = E.globeWrap.getBoundingClientRect(), hd = document.querySelector('.site-header').getBoundingClientRect().bottom, pl = E.player ? E.player.getBoundingClientRect().top : innerHeight;
+  const cta = !E.geoCta.hidden && innerWidth < 1024 ? E.geoCta.offsetHeight + 56 : 0;
+  let t = Math.max(0, hd - wr.top) + 6, b = Math.max(0, wr.bottom - pl) + 30 + cta;
+  const room = wr.height - 180; if (t + b > room){ const f = room / (t + b); t *= f; b *= f; }
+  globe.setPad(t, b); fitDone = true;
+};
 async function initGeo(){
+  new MutationObserver(syncPad).observe(E.geoCta, { attributes: true, attributeFilter: ['hidden'] }); new MutationObserver(syncPad).observe(document.body, { attributes: true, attributeFilter: ['class'] }); addEventListener('resize', syncPad); addEventListener('load', syncPad); new ResizeObserver(syncPad).observe(document.body); syncPad();
   if (!navigator.geolocation) { E.nearBtn.hidden = true; return; }
   E.nearBtn.addEventListener('click', () => { player.unlock(); goNearMe(); });
   E.geoBtn.addEventListener('click', () => { player.unlock(); goNearMe(); });
