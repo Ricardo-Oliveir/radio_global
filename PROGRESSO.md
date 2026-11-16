@@ -1,6 +1,6 @@
 # WAVE GLOBAL · progresso por partes
 
-Marca oficial: WAVE GLOBAL. Slogan: THE WORLD. ONE FREQUENCY. Domínio preservado: dioglobal-phi.vercel.app (só aparece em URL canônica, Open Graph e sitemap; o nome antigo não aparece na interface).
+Marca oficial: WAVE GLOBAL. Slogan: THE WORLD. ONE FREQUENCY. Domínio preservado: radioglobal-phi.vercel.app (só aparece em URL canônica, Open Graph e sitemap; o nome antigo não aparece na interface).
 
 Como retomar: `npm test` (ou `node tests/smoke.cjs`) deve dar 150 ok. Para testar a variante com anúncios: `DIR=dist-ads node tests/smoke.cjs` depois de `BUILD_DIR=dist-ads GOOGLE_ADSENSE_CLIENT=ca-pub-1234567890123456 GOOGLE_ADSENSE_SLOT=1234567890 node scripts/build.mjs`.
 
@@ -28,3 +28,37 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Sobre, Contato, Privacidade, Cookies e Termos abrem dentro do app: o player não para. Acesso direto à URL continua estático.
 - Rodapé: "Desenvolvido por" + só ícones (LinkedIn, GitHub). Página contato.html.
 - Pendente: validar textura/CDN no navegador real; e-mail público de contato (CONTACT_EMAIL); slot do AdSense.
+
+## Parte 5 — suavidade e viagem de avião
+- Globo desenhado na placa de vídeo (WebGL2) com zoom suave; cai para canvas se não houver WebGL.
+- Avião com rastro que segue a rota; câmera acompanha. Botão "Viagem" no globo e atalho nas Opções (ícone de ajustes, não mais engrenagem/sol). Opções com interruptores.
+
+## Parte 6 — celular compacto e anúncio pequeno
+- Cabeçalho do celular em uma linha (busca vira ícone); menu abre como lista flutuante. Player compacto com botão "mais".
+- Globo inteiro no celular (zoom inicial ajustado, textos menores).
+- Espaço de anúncio pequeno (posição "loc", 320x100) no painel da cidade; quando ativo, substitui a lista de rádios próximas. Precisa do número do bloco (GOOGLE_ADSENSE_SLOT_LOC ou adsSlots.loc em site.config.json).
+
+## Parte 7 — visual de equipamento e segurança
+- Preto fosco + granulação SVG, fontes IBM Plex (Sans, Condensed, Mono); dados em mono; botões em relevo e play em forma de botão giratório.
+- Texto direto (sem frases de efeito). Chiado de estática ao sintonizar (opção nas Opções).
+- Medidor de áudio real (AnalyserNode) só com proxy de streams; sem proxy fica escondido.
+- workers/stream-proxy.js (Cloudflare Worker): http→https, CORS, bloqueio de IP privado, só áudio, rate limit opcional. Testes em tests/worker.mjs.
+- vercel.json: CSP, HSTS, COOP. Sem innerHTML no código; sem campo de envio de rádios.
+- Pendente: publicar o Worker e preencher streamProxy; validar CSP/anúncios em produção; dial visual completo.
+
+## Parte 8 — perto de mim
+- Ao abrir: com permissão de localização já dada, acha a cidade mais próxima da lista e toca; sem permissão, mostra "Ouvir perto de mim". Botão "Perto de mim" na barra do globo. Posição usada só no navegador. Permissions-Policy liberou geolocation. Texto na página de privacidade.
+
+## Parte 9 — mais cidades
+- cities.json passou de 1.998 para 4.535 cidades (238 países/territórios). As novas foram escritas por região, validadas por script (fuso IANA, faixa de coordenadas, duplicatas, distância ao país) e conferidas por amostra. Coordenadas não vêm de base oficial: podem ter pequenos desvios.
+- Rádios: vêm ao vivo do Radio Browser (sem lista fixa).
+
+## Parte 10 — Globo grande e aviso de versão
+- Botão "Tela cheia" virou "Globo grande": aumenta o globo, mostra o painel "No ar" (rádio, cidade, hora local, A seguir/Antes, contagem do modo automático) e deixa só um mini player (tocar/pausar, trocar rádio, mudo). Esc ou o mesmo botão saem. A rádio não para.
+- Build gera `version.json` (hash do conteúdo, sem cache). O app consulta a cada 10 min (e ao voltar para a aba) e mostra "Há uma versão nova — Atualizar". Nunca recarrega sozinho.
+- Não foi feita atualização automática de anúncios/página: o AdSense proíbe refresh forçado de anúncios e recarregar cortaria o áudio.
+- TV: pendente (precisa decidir a fonte dos canais; nenhum link inventado).
+
+## Parte 11 — Remoção do assistente de IA
+- Removidos a seção "Assistente", assets/js/ai.js, a pasta api/ e as menções em Sobre/Privacidade/README. O site agora é 100% estático (sem função de servidor, sem chave de IA).
+- Painel do Globo grande só abre sob demanda (botão Painel); × e Esc saem.

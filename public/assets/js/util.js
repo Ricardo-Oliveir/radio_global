@@ -34,3 +34,10 @@ export function distKm(aLon, aLat, bLon, bLat){
   return 12742 * Math.asin(Math.min(1, Math.sqrt(x)));
 }
 export const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// Cidade da lista mais próxima de um ponto (lat/lon), com a distância em km.
+export function nearestCity(cities, lat, lon){
+  let best = null, bd = Infinity;
+  for (const c of cities){ const d = distKm(lon, lat, c.o, c.a); if (d < bd){ bd = d; best = c; } }
+  return best ? { city: best, km: Math.round(bd) } : null;
+}

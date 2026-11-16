@@ -1,14 +1,17 @@
 // Um único <audio> em toda a página: nunca há duas reproduções ao mesmo tempo.
 import { loadScript } from './util.js';
+import config from './config.js';
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const HLS = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+const PROXY = /^https:\/\//.test(config.streamProxy || '') ? config.streamProxy.replace(/\/+$/, '') : '';
+const proxied = u => PROXY && /^https?:\/\//i.test(u) && !/\.m3u8(\?|$)/i.test(u) ? PROXY + '/?u=' + encodeURIComponent(u) : u;
 export class Player extends EventTarget {
   constructor(){
     super();
     this.audio = new Audio(); this.audio.preload = 'none'; this.audio.setAttribute('playsinline', '');
     this.state = 'idle'; this.station = null; this.tok = 0; this.hls = null; this.retries = 0; this.wantPlay = false; this.unlocked = false; this.stall = 0;
     const a = this.audio;
-    a.addEventListener('playing', () => { this.retries = 0; this.stall = 0; this.set('playing'); });
+    a.addEventListener('playing', () => { this.retries = 0; this.stall = 0; this.tap(); this.set('playing'); });
     a.addEventListener('pause', () => { if (this.state === 'playing' && this.wantPlay === false) this.set('paused'); });
     a.addEventListener('waiting', () => { if (this.wantPlay && this.state === 'playing') this.set('loading'); });
     a.addEventListener('error', () => this.fail());
@@ -16,11 +19,19 @@ export class Player extends EventTarget {
     setInterval(() => { if (this.wantPlay && this.state === 'loading' && this.station && !this.probing){ this.stall += 1; if (this.stall > 15) this.fail(); } else this.stall = 0; }, 1000);
   }
   set(s, detail){ if (this.state !== s || detail){ this.state = s; this.dispatchEvent(new CustomEvent('state', { detail: { state: s, ...detail } })); } }
-  unlock(){ if (this.unlocked) return; this.unlocked = true; try { this.audio.src = SILENT; this.audio.play().catch(() => {}); } catch {} }
+  // AudioContext único (chiado e analisador). Só nasce depois de um toque do usuário.
+  ctx(){ if (!this.ac){ const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { this.ac = new C(); } catch { return null; } } if (this.ac.state === 'suspended') this.ac.resume().catch(() => {}); return this.ac; }
+  // Analisador de áudio de verdade. Só liga quando todos os streams passam pelo proxy com CORS (senão o navegador zera o som).
+  tap(){
+    if (this.analyser || !PROXY || this.noTap || /iP(hone|ad|od)/.test(navigator.userAgent)) return;
+    const c = this.ctx(); if (!c) return;
+    try { const src = c.createMediaElementSource(this.audio), an = c.createAnalyser(); an.fftSize = 128; an.smoothingTimeConstant = .72; src.connect(an); an.connect(c.destination); this.analyser = an; this.dispatchEvent(new Event('analyser')); } catch { this.noTap = true; }
+  }
+  unlock(){ this.ctx(); if (this.unlocked) return; this.unlocked = true; try { this.audio.src = SILENT; this.audio.play().catch(() => {}); } catch {} }
   teardown(){ if (this.hls){ try { this.hls.destroy(); } catch {} this.hls = null; } this.audio.pause(); this.audio.removeAttribute('src'); try { this.audio.load(); } catch {} }
   attach(st){
     const url = st.url, a = this.audio;
-    if ((st.hls || /\.m3u8(\?|$)/i.test(url)) && !a.canPlayType('application/vnd.apple.mpegurl')){
+    if ((st.hls || /\.m3u8(\?|$)/i.test(url)) && (PROXY || !a.canPlayType('application/vnd.apple.mpegurl'))){
       return loadScript(HLS).then(() => {
         if (!window.Hls || !window.Hls.isSupported()) throw new Error('hls');
         this.hls = new window.Hls(); this.hls.loadSource(url); this.hls.attachMedia(a);
@@ -28,7 +39,7 @@ export class Player extends EventTarget {
         return a.play();
       });
     }
-    a.src = url; return a.play();
+    if (PROXY){ a.crossOrigin = 'anonymous'; } a.src = proxied(url); return a.play();
   }
   // Tenta tocar; devolve true se começou, false se falhou ou estourou o tempo.
   load(st, ms = 9000){

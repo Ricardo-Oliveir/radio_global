@@ -1,3 +1,4 @@
+import config from './config.js';
 // Cliente do diretório Radio Browser (dados reais). Nada aqui é inventado: o que não vem da API não aparece.
 import { norm, shuffle } from './util.js';
 const HOSTS = ['https://all.api.radio-browser.info', 'https://de1.api.radio-browser.info', 'https://nl1.api.radio-browser.info', 'https://at1.api.radio-browser.info'];
@@ -17,7 +18,8 @@ async function getJSON(path, ms = 9000){
   return null;
 }
 const q = o => Object.entries(o).filter(([, v]) => v !== '' && v != null).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
-const BASE = { hidebroken: 'true', is_https: 'true', order: 'clickcount', reverse: 'true' };
+const PROXY = /^https:\/\//.test(config.streamProxy || '');
+const BASE = { hidebroken: 'true', ...(PROXY ? {} : { is_https: 'true' }), order: 'clickcount', reverse: 'true' };
 export function station(s){
   const url = s.url_resolved || s.url || '';
   return {
@@ -26,7 +28,7 @@ export function station(s){
     codec: s.codec || '', bitrate: +s.bitrate || 0, hls: s.hls ? 1 : 0, lat: s.geo_lat ?? null, lon: s.geo_long ?? null, language: s.language || ''
   };
 }
-const ok = s => s && s.name && s.url_resolved && /^https:\/\//i.test(s.url_resolved) && s.lastcheckok !== 0;
+const ok = s => s && s.name && s.url_resolved && (/^https:\/\//i.test(s.url_resolved) || (PROXY && /^http:\/\//i.test(s.url_resolved) && !/\.m3u8(\?|$)/i.test(s.url_resolved))) && s.lastcheckok !== 0;
 const clean = list => { const seen = new Set(); return (list || []).filter(s => { if (!ok(s) || seen.has(s.url_resolved)) return false; seen.add(s.url_resolved); return true; }).map(station); };
 const search = async (p, limit = 24) => clean(await getJSON('/json/stations/search?' + q({ ...BASE, ...p, limit })));
 export const top = (n = 24) => search({}, n);

@@ -6,6 +6,8 @@ import { clockInfo } from './clock.js';
 import { mountAds, applyConsent, adsEnabled } from './ads.js';
 import config from './config.js';
 import { Trip } from './trip.js';
+import { Static, Meter } from './fx.js';
+import { nearestCity } from './util.js';
 
 const player = new Player();
 const S = {
@@ -14,7 +16,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'assistente', 'aiForm', 'aiQ', 'aiStatus', 'aiGrid', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -29,6 +31,8 @@ E.menuBtn.addEventListener('click', () => {
 });
 E.nav.addEventListener('click', e => { if (e.target.closest('a')) { E.nav.classList.remove('open'); E.menuBtn.setAttribute('aria-expanded', 'false'); setIcon(E.menuBtn, 'menu'); } });
 E.year.textContent = new Date().getFullYear();
+E.searchBtn.addEventListener('click', () => { const hd = document.querySelector('.hdr'), on = hd.classList.toggle('search-open'); E.searchBtn.setAttribute('aria-expanded', on); if (on) E.q.focus(); else E.searchPanel.hidden = true; });
+E.pMore.addEventListener('click', () => { const on = E.player.classList.toggle('open'); E.pMore.setAttribute('aria-expanded', on); E.pMore.setAttribute('aria-label', on ? 'Menos controles' : 'Mais controles'); setIcon(E.pMore, on ? 'close' : 'more'); });
 const syncPlayerH = () => document.documentElement.style.setProperty('--player-h', Math.ceil(E.player.getBoundingClientRect().height) + 'px');
 new ResizeObserver(syncPlayerH).observe(E.player);
 
@@ -82,8 +86,8 @@ document.addEventListener('click', e => {
 const labels = { idle: 'Reproduzir', paused: 'Reproduzir', error: 'Reproduzir', blocked: 'Reproduzir', loading: 'Pausar', playing: 'Pausar' };
 function paintPlayer(){
   const st = S.station, ps = player.state;
-  E.pName.textContent = st ? st.name : 'Escolha uma estação';
-  E.pMeta.textContent = st ? ([S.city ? cityLabel(S.city) : '', st.codec && st.bitrate ? `${st.codec} ${st.bitrate} kbps` : ''].filter(Boolean).join(' · ') || subline(st)) : 'Toque no globo ou na lista de descoberta';
+  E.pName.textContent = st ? st.name : 'Nada tocando';
+  E.pMeta.textContent = st ? ([S.city ? cityLabel(S.city) : '', st.codec && st.bitrate ? `${st.codec} ${st.bitrate} kbps` : ''].filter(Boolean).join(' · ') || subline(st)) : 'Toque em ▶ para uma cidade ao acaso';
   const lg = logo(st || { name: '♪' }, 'logo'); E.pLogo.replaceChildren(...lg.childNodes);
   if (!st) E.pLogo.replaceChildren(icon('play'));
   const playing = ps === 'playing' || ps === 'loading';
@@ -98,6 +102,8 @@ function paintPlayer(){
     navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
   }
 }
+const staticFx = new Static(player); new Meter(E.pVu, player);
+player.addEventListener('state', e => { const d = e.detail; if (d.state === 'loading' && d.station && S.opts.noise !== false) staticFx.start(); else if (d.state !== 'loading') staticFx.stop(); });
 player.addEventListener('state', e => {
   const { state, retry, final } = e.detail;
   if (state === 'loading' && retry) status(`Reconectando (tentativa ${retry} de 3)…`, true);
@@ -210,7 +216,7 @@ async function loadSimilar(st){
 /* ---------- troca automática (opcional) ---------- */
 function armAuto(){
   clearTimeout(S.autoT); if (!S.opts.auto) return;
-  S.autoT = setTimeout(() => { if (player.state === 'playing') randomCity(); else armAuto(); }, S.opts.mins * 60000);
+  S.autoAt = Date.now() + S.opts.mins * 60000; S.autoT = setTimeout(() => { if (player.state === 'playing') randomCity(); else armAuto(); }, S.opts.mins * 60000);
 }
 
 /* ---------- globo ---------- */
@@ -223,14 +229,38 @@ function initGlobe(){
     onFirstDraw: () => E.globePoster.classList.add('off')
   });
   globe.setSpin(S.opts.spin);
-  if (S.city) { globe.setSelected(S.city); globe.flyTo(S.city, 1.5, 1); }
+  if (S.city) { globe.setSelected(S.city); globe.flyTo(S.city, 1.05, 1); }
   const idle = window.requestIdleCallback || (f => setTimeout(f, 600));
   idle(() => globe.loadMap(), { timeout: 2500 });
 }
 E.zIn.addEventListener('click', () => globe && globe.zoom(1.3));
 E.zOut.addEventListener('click', () => globe && globe.zoom(.77));
-E.fullBtn.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); });
-document.addEventListener('fullscreenchange', () => { const f = !!document.fullscreenElement; E.fullBtn.setAttribute('aria-label', f ? 'Sair da tela cheia' : 'Tela cheia'); });
+// Globo grande: aumenta o globo, mostra o "no ar" e deixa só um mini player (não usa a tela cheia do navegador).
+let bigT = 0;
+const fitBig = () => { const hd = document.querySelector('.site-header'); document.documentElement.style.setProperty('--big-top', Math.ceil(hd.getBoundingClientRect().bottom) + 'px'); };
+const mmss = ms => { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function paintOnAir(){
+  const st = S.station, c = S.city;
+  E.oaStation.textContent = st ? st.name : 'Nada tocando'; E.oaPlace.textContent = c ? `${c.n}, ${c.p}` : 'Toque numa cidade do globo';
+  E.oaTime.textContent = c ? clockInfo(c.z, c.a, c.o).time : '';
+  const li = t => h('li', { text: t });
+  const nxt = st ? S.queue.slice(S.qi + 1, S.qi + 4) : [], past = S.history.filter(x => !st || x.id !== st.id).slice(0, 3);
+  E.oaNext.replaceChildren(...(nxt.length ? nxt.map(x => li(x.name)) : [li('—')])); E.oaHist.replaceChildren(...(past.length ? past.map(x => li(x.name)) : [li('—')]));
+  E.oaAuto.textContent = S.opts.auto && S.autoAt ? `Próxima cidade automática em ${mmss(S.autoAt - Date.now())}` : '';
+}
+function setPanel(on){ document.body.classList.toggle('bgpanel', on); E.bgPanel.setAttribute('aria-expanded', on); E.bgPanel.querySelector('span').textContent = on ? 'Fechar painel' : 'Painel'; requestAnimationFrame(() => globe && globe.resize()); }
+function setBigGlobe(on){
+  document.body.classList.toggle('bigglobe', on); setPanel(false); E.onAir.hidden = !on; E.fullBtn.setAttribute('aria-pressed', on); clearInterval(bigT);
+  E.fullBtn.querySelector('span').textContent = on ? 'Sair do globo grande' : 'Globo grande';
+  if (on){ fitBig(); scrollTo(0, 0); paintOnAir(); bigT = setInterval(paintOnAir, 1000); }
+  requestAnimationFrame(() => globe && globe.resize());
+}
+E.fullBtn.addEventListener('click', () => setBigGlobe(!document.body.classList.contains('bigglobe')));
+E.bgExit.addEventListener('click', () => setBigGlobe(false));
+E.bgPanel.addEventListener('click', () => setPanel(!document.body.classList.contains('bgpanel')));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('bigglobe') && !document.querySelector('dialog[open]')) setBigGlobe(false); });
+addEventListener('resize', () => { if (document.body.classList.contains('bigglobe')) fitBig(); });
+player.addEventListener('state', () => { if (document.body.classList.contains('bigglobe')) paintOnAir(); });
 E.countrySel.addEventListener('change', () => { const cc = E.countrySel.value; if (!cc) return; goCountry(cc, true); E.countrySel.value = ''; });
 function centroidCity(cc){
   const l = S.byCC.get(cc) || []; if (!l.length) return null;
@@ -309,26 +339,11 @@ E.searchForm.addEventListener('submit', e => { e.preventDefault(); const b = E.s
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
 document.addEventListener('click', e => { if (!e.target.closest('.search-panel, .search')) closeSearch(); });
 
-/* ---------- assistente (somente se o servidor tiver IA configurada) ---------- */
-async function initAI(){
-  const { aiEnabled, suggest } = await import('./ai.js');
-  if (!(await aiEnabled())) return;
-  E.assistente.hidden = false;
-  E.aiForm.addEventListener('submit', async e => {
-    e.preventDefault(); const p = E.aiQ.value.trim(); if (p.length < 3) return;
-    E.aiStatus.textContent = 'Procurando estações reais para o seu pedido…'; E.aiGrid.replaceChildren();
-    try {
-      const r = await suggest(p);
-      E.aiStatus.textContent = r.picks.length ? 'Sugestões baseadas só nos dados das estações:' : (r.note || 'Não encontrei boas opções. Tente descrever de outro jeito.');
-      E.aiGrid.replaceChildren(...r.picks.map(x => card(x.station, x.why)));
-    } catch { E.aiStatus.textContent = 'O assistente não respondeu agora. Tente de novo em instantes.'; }
-  });
-}
-
 /* ---------- opções e consentimento ---------- */
-E.pOpts.addEventListener('click', () => { E.optAuto.checked = S.opts.auto; E.optMins.value = String(S.opts.mins); E.optSpin.checked = S.opts.spin; E.optsDlg.showModal(); });
-const saveOpts = () => { S.opts = { auto: E.optAuto.checked, mins: +E.optMins.value, spin: E.optSpin.checked }; store.set('opts', S.opts); globe && globe.setSpin(S.opts.spin); armAuto(); };
-[E.optAuto, E.optMins, E.optSpin].forEach(el => el.addEventListener('change', saveOpts));
+E.optTrip && E.optTrip.addEventListener('click', () => { E.optsDlg.close(); E.tripBtn.click(); });
+E.pOpts.addEventListener('click', () => { E.optAuto.checked = S.opts.auto; E.optMins.value = String(S.opts.mins); E.optSpin.checked = S.opts.spin; E.optNoise.checked = S.opts.noise !== false; E.optsDlg.showModal(); });
+const saveOpts = () => { S.opts = { auto: E.optAuto.checked, mins: +E.optMins.value, spin: E.optSpin.checked, noise: E.optNoise.checked }; store.set('opts', S.opts); globe && globe.setSpin(S.opts.spin); armAuto(); };
+[E.optAuto, E.optMins, E.optSpin, E.optNoise].forEach(el => el.addEventListener('change', saveOpts));
 E.optClear.addEventListener('click', () => { store.clear(); S.favs = []; S.history = []; refreshFavUI(); renderTab(); E.optClear.textContent = 'Dados apagados'; });
 const consentOpen = () => { E.consent.hidden = false; scrollTo({ top: 0 }); E.cNo.focus({ preventScroll: true }); };
 E.consentBtn.addEventListener('click', consentOpen);
@@ -358,7 +373,7 @@ function paintTrip(i){
   if (!i || i.state === 'off') return;
   const done = i.state === 'done';
   E.tripTitle.textContent = `${i.from.n} → ${i.to.n}`;
-  E.tripStop.textContent = done ? `Chegamos a ${i.city.n}, ${i.city.p}.` : i.state === 'flying' ? `Voando para ${i.next.n}, ${i.next.p}…` : `Parada ${i.i + 1} de ${i.n}: ${i.city.n}, ${i.city.p}`;
+  E.tripStop.textContent = done ? `Chegamos a ${i.city.n}, ${i.city.p}.` : i.flyingNow ? `Voando para ${i.next.n}, ${i.next.p}…` : `Parada ${i.i + 1} de ${i.n}: ${i.city.n}, ${i.city.p}`;
   E.tripProg.textContent = done ? 'Viagem concluída.' : `${km(i.kmLeft)} restantes${i.state === 'dwell' ? ` · segue em ${Math.ceil(i.left / 1000)} s` : i.state === 'paused' ? ' · em pausa' : ''}`;
   E.tripFill.style.width = Math.round(Math.max(0, Math.min(1, done ? 1 : i.pct)) * 100) + '%';
   const paused = i.state === 'paused';
@@ -414,6 +429,45 @@ document.addEventListener('click', e => {
 E.pageBack.addEventListener('click', () => { closeDoc(); });
 addEventListener('popstate', () => { if (DOC.test(location.pathname)) openDoc(location.pathname + location.hash, false); else closeDoc(false); });
 
+
+/* ---------- perto de mim ---------- */
+// A posição só é lida no navegador, para achar a cidade da lista mais próxima. Nada é enviado nem guardado.
+function whereAmI(){ return new Promise((res, rej) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => res(p.coords), rej, { timeout: 12000, maximumAge: 600000 }) : rej(new Error('sem suporte'))); }
+async function goNearMe({ play = true } = {}){
+  E.geoCta.hidden = true; E.nearBtn.disabled = true; E.globeHint.textContent = 'Procurando você…';
+  try {
+    const p = await whereAmI(), n = nearestCity(S.cities, p.latitude, p.longitude);
+    if (!n) throw new Error('sem cidade');
+    store.set('geo', '1'); await selectCity(n.city, { play });
+    E.globeHint.textContent = n.km > 60 ? `Cidade da lista mais perto de você: ${n.city.n}, ${n.city.p} (a ${n.km} km).` : `Você está perto de ${n.city.n}, ${n.city.p}.`;
+  } catch (e) {
+    E.globeHint.textContent = e && e.code === 1 ? 'Sem permissão de localização. Escolha uma cidade no globo.' : 'Não consegui descobrir sua posição. Escolha uma cidade no globo.';
+  } finally { E.nearBtn.disabled = false; }
+}
+// Avisa quando há versão nova, sem recarregar sozinho (recarregar cortaria a rádio). Só atualiza quando a pessoa toca.
+function initUpdate(){
+  if (!config.version) return;
+  let dismissed = false;
+  const check = async () => {
+    if (dismissed || document.hidden || !E.updBar.hidden) return;
+    try { const r = await fetch('/version.json', { cache: 'no-store' }); if (!r.ok) return; const j = await r.json(); if (j && j.v && j.v !== config.version) E.updBar.hidden = false; } catch {}
+  };
+  E.updBtn.addEventListener('click', () => location.reload());
+  E.updX.addEventListener('click', () => { dismissed = true; E.updBar.hidden = true; });
+  setInterval(check, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+}
+async function initGeo(){
+  if (!navigator.geolocation) { E.nearBtn.hidden = true; return; }
+  E.nearBtn.addEventListener('click', () => { player.unlock(); goNearMe(); });
+  E.geoBtn.addEventListener('click', () => { player.unlock(); goNearMe(); });
+  E.geoSkip.addEventListener('click', () => { E.geoCta.hidden = true; store.set('geoNo', '1'); });
+  let st = 'prompt'; try { st = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch {}
+  if (new URLSearchParams(location.search).get('q')) return;
+  if (st === 'granted') goNearMe();
+  else if (st === 'prompt' && !store.get('geoNo')) E.geoCta.hidden = false;
+}
+
 /* ---------- início ---------- */
 async function boot(){
   const vol = store.get('vol', 0.8); E.pVol.value = vol; player.setVolume(vol); player.setMuted(store.get('muted', false)); paintMute(); paintPlayer(); refreshFavUI();
@@ -424,14 +478,13 @@ async function boot(){
   E.countrySel.append(...S.countries.map(c => h('option', { value: c.c, text: c.p })));
   const last = store.get('city'); if (last){ const [n, cc] = String(last).split('|'); S.city = (S.byCC.get(cc) || []).find(c => c.n === n) || null; }
   if (S.city){ E.locFlag.hidden = false; E.locFlag.src = flagUrl(S.city.c); E.locCity.textContent = S.city.n; E.locCountry.textContent = S.city.p; E.clock.hidden = false; paintClock(); }
-  initGlobe(); initTrip();
+  initGlobe(); initTrip(); initGeo(); initUpdate();
   const q = new URLSearchParams(location.search).get('q'); if (q){ E.q.value = q; doSearch(); }
   // descoberta só quando a seção se aproxima da tela
   const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); renderTab(); } }, { rootMargin: '400px' });
   io.observe(document.getElementById('descobrir'));
-  initAI();
   const idle = window.requestIdleCallback || (f => setTimeout(f, 1200));
-  idle(() => { mountAds(); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
-  if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, trip, selectCity, playStation, randomCity, renderTab, radio };
+  idle(() => { mountAds(); E.loc.classList.toggle('has-ad', !!document.querySelector('[data-ad="loc"][data-mounted]')); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
+  if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, trip, goNearMe, selectCity, playStation, randomCity, renderTab, radio };
 }
 boot().catch(e => { E.gridStatus.textContent = 'Não foi possível carregar os dados do site. Recarregue a página.'; console.error(e); });

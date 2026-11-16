@@ -15,10 +15,11 @@ function loadAdsScriptOnce(){
 const slotFor = pos => (config.adsSlots && config.adsSlots[pos]) || config.adsSlot || '';
 export function AdBanner(pos){ return h('ins', { class: 'adsbygoogle ad-slot', style: 'display:block', 'data-ad-client': config.adsClient, 'data-ad-slot': slotFor(pos), 'data-ad-format': 'horizontal', 'data-full-width-responsive': 'true' }); }
 export function AdResponsive(pos){ return h('ins', { class: 'adsbygoogle ad-slot', style: 'display:block', 'data-ad-client': config.adsClient, 'data-ad-slot': slotFor(pos), 'data-ad-format': 'auto', 'data-full-width-responsive': 'true' }); }
-export function AdContainer(pos){
+export function AdFixed(pos, w, hh){ return h('ins', { class: 'adsbygoogle ad-slot', style: `display:inline-block;width:${w}px;height:${hh}px`, 'data-ad-client': config.adsClient, 'data-ad-slot': slotFor(pos) }); }
+export function AdContainer(pos, width = 0){
   const box = h('div', { class: 'ad-inner' }, h('span', { class: 'ad-label', text: 'Publicidade' }));
   if (preview && !adsEnabled()){ box.append(h('div', { class: 'ad-slot', text: 'Espaço reservado para anúncio (' + pos + ')' })); return box; }
-  box.append(pos === 'side' ? AdResponsive(pos) : AdBanner(pos)); return box;
+  box.append(pos === 'loc' ? (width >= 320 ? AdFixed(pos, 320, 100) : AdFixed(pos, 234, 60)) : pos === 'side' ? AdResponsive(pos) : AdBanner(pos)); return box;
 }
 const mq = { desktop: matchMedia('(min-width:768px)'), mobile: matchMedia('(max-width:767px)'), wide: matchMedia('(min-width:1280px)') };
 const fits = rule => rule === 'all' || (mq[rule] && mq[rule].matches);
@@ -30,7 +31,7 @@ export function mountAds(root = document){
     const pos = el.dataset.ad;
     if (adsEnabled() && !slotFor(pos)) continue;
     el.dataset.mounted = '1'; el.hidden = false; if (preview && !adsEnabled()) el.classList.add('preview');
-    el.append(AdContainer(pos));
+    el.append(AdContainer(pos, el.clientWidth));
     if (adsEnabled()){ loadAdsScriptOnce(); const ins = el.querySelector('ins'); try { if (!ins.dataset.adsbygoogleStatus) (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} }
   }
 }
