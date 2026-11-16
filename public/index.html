@@ -6,6 +6,7 @@
 <title>WAVE GLOBAL · The world. One frequency.</title>
 <meta name="description" content="WAVE GLOBAL: globo com rádios ao vivo de mais de 4.500 cidades. Toque numa cidade e ouça. Mostra a hora local, favoritos e busca por país, continente e gênero.">
 <meta name="theme-color" content="#0a0a0a">
+<script>try{var t=JSON.parse(localStorage.getItem("wg.theme"));if(t==="light"){document.documentElement.dataset.theme="light";document.querySelector('meta[name=theme-color]').content="#f6f3ee"}}catch(e){}</script>
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
 <meta name="author" content="WAVE GLOBAL">
 <meta name="application-name" content="WAVE GLOBAL">
@@ -60,6 +61,7 @@
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2.500M12 18.500V21M3 12h2.500M18.500 12H21M5.600 5.600l1.800 1.800M16.600 16.600l1.800 1.800M5.600 18.400l1.800-1.800M16.600 7.400l1.800-1.800" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4 8 8 0 1 0 20 14.500z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600 7 7M17 17l1.400 1.400M5.600 18.400 7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.500 13.800 9l5.700 1.800-5.700 1.800L12 18l-1.800-5.400-5.700-1.800L10.200 9 12 3.500ZM19 16l.8 2.200L22 19l-2.200.8L19 22l-.8-2.200L16 19l2.200-.8L19 16Z" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linejoin="round"/></symbol>
@@ -78,7 +80,10 @@
       <span class="brand-text"><span class="brand-name">WAVE <b>GLOBAL</b></span><span class="brand-tag">THE WORLD. ONE FREQUENCY.</span></span>
     </a>
     <button class="icon-btn search-btn" id="searchBtn" type="button" aria-expanded="false" aria-controls="searchForm" aria-label="Buscar"><svg class="ic"><use href="#i-search"/></svg></button>
-    <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav" aria-label="Abrir menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+    <div class="hdr-act">
+      <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="Mudar para tema claro" aria-pressed="false"><svg class="ic"><use href="#i-sun"/></svg></button>
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav" aria-label="Abrir menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+    </div>
     <form class="search" id="searchForm" role="search" autocomplete="off">
       <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
       <input id="q" name="q" type="search" placeholder="Buscar rádio, cidade ou país" aria-label="Buscar rádio, cidade ou país" enterkeyhint="search" autocomplete="off">
@@ -168,12 +173,12 @@
         <h3>Estações nesta região</h3>
         <p class="note" id="locNote"></p>
         <ul class="st-list" id="stList"></ul>
-        <button class="btn" id="otherBtn" type="button"><svg class="ic"><use href="#i-swap"/></svg><span>Outra estação</span></button>
       </div>
       <div class="loc-similar" id="similarBox" hidden>
         <h3>Semelhantes à que está tocando</h3>
         <ul class="st-list" id="similarList"></ul>
       </div>
+    <div class="ad ad-loc" data-ad="loc2" data-show="all" hidden></div>
     </aside>
   </section>
 

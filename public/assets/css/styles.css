@@ -29,7 +29,7 @@ button,input,select{font:inherit;color:inherit}
 .btn,.icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface2);color:var(--text);cursor:pointer;border-radius:10px;min-height:44px;transition:background .15s,border-color .15s,transform .1s}
 .btn{padding:0 14px;font-weight:500;font-size:14px;white-space:nowrap}
 .icon-btn{width:44px;padding:0}
-.btn:hover,.icon-btn:hover{border-color:rgba(255,217,168,.5);background:#182655}
+.btn:hover,.icon-btn:hover{border-color:rgba(255,217,168,.5);background:var(--hover,#182655)}
 .btn:active,.icon-btn:active{transform:scale(.97)}
 .btn-primary{background:var(--coral);border-color:var(--coral);color:#1a0610;font-weight:600}
 .btn-primary:hover{background:#ff7589;border-color:#ff7589}
@@ -47,7 +47,7 @@ button,input,select{font:inherit;color:inherit}
 .brand-name{font:700 17px/1.1 var(--display);letter-spacing:.07em;white-space:nowrap}
 .brand-name b{color:var(--coral);font-weight:700}
 .brand-tag{font-size:9.5px;letter-spacing:.17em;color:var(--dim);white-space:nowrap}
-.menu-btn{grid-area:menu}
+.hdr-act{grid-area:menu;display:flex;gap:8px;align-items:center}
 .search{grid-area:search;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 12px;min-height:44px}
 .search:focus-within{border-color:var(--blue2)}
 .search input{flex:1;min-width:0;background:none;border:0;outline:0;min-height:42px;font-size:16px}
@@ -235,7 +235,7 @@ body.doc-page{padding-bottom:0}
 /* ≥ 1024: desktop */
 @media (min-width:1024px){
   :root{--player-h:84px}
-  .hdr{grid-template-columns:auto auto minmax(240px,1fr);grid-template-areas:"brand nav search";gap:10px 22px}
+  .hdr{grid-template-columns:auto auto minmax(240px,1fr) auto;grid-template-areas:"brand nav search menu";gap:10px 22px}
   .menu-btn{display:none}
   .nav{display:flex;flex-direction:row;gap:2px;padding:0}
   .stage{grid-template-columns:minmax(0,1.3fr) minmax(340px,.7fr);grid-template-areas:"intro intro" "globe loc";align-items:start;padding-block:30px 14px}
@@ -371,7 +371,7 @@ body::before{content:"";position:fixed;inset:0;z-index:90;pointer-events:none;op
 .eyebrow{font-family:var(--mono);letter-spacing:.12em}
 .stage-intro h1{font-weight:600;letter-spacing:-.005em}
 .btn,.icon-btn,.search,select,.soc-card,.loc-card,.trip-bar,dialog,.page-in .doc{border-radius:8px}
-.icon-btn{background:linear-gradient(#1f1f21,#161617);border:1px solid rgba(236,228,214,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 0 #000}
+.icon-btn{background:linear-gradient(var(--ib1,#1f1f21),var(--ib2,#161617));border:1px solid var(--ibl,rgba(236,228,214,.14));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 0 var(--ibs,#000)}
 .icon-btn:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.6);transform:translateY(1px)}
 .icon-btn.play{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8497,#ff5d73 55%,#c43a50);border:2px solid #1a0610;box-shadow:0 0 0 2px rgba(255,93,115,.45),0 0 0 6px #121213,0 0 0 7px rgba(236,228,214,.14),0 6px 14px rgba(0,0,0,.6)}
 .player{background:rgba(14,14,15,.97);border-top:1px solid rgba(236,228,214,.14);box-shadow:0 -1px 0 #000,0 -10px 30px rgba(0,0,0,.5)}
@@ -434,3 +434,22 @@ body.bigglobe .geo-cta{display:none}
 /* PC: o aviso de localização fica no canto, fora do globo */
 @media (min-width:1024px){.geo-cta{justify-self:start;margin-left:var(--gut)}}
 @media (max-width:1023px){.globe-wrap{min-height:clamp(280px,50dvh,640px)}}
+
+/* ---------- tema claro ---------- */
+:root[data-theme="light"]{color-scheme:light;--bg:#f6f3ee;--bg2:#efebe4;--surface:#ffffff;--surface2:#ece7de;--line:rgba(24,20,14,.14);--text:#1b1814;--dim:#6a645a;--blue:#4a6578;--blue2:#27506e;--coral:#d92e49;--focus:#8a4b00;--hover:#e3dccf;--ib1:#fff;--ib2:#ebe5da;--ibl:rgba(24,20,14,.16);--ibs:rgba(24,20,14,.12)}
+:root[data-theme="light"] body::before{background:radial-gradient(900px 520px at 78% -8%,rgba(255,150,90,.10),transparent 70%),var(--bg)}
+:root[data-theme="light"] .site-header{background:rgba(246,243,238,.9)}
+:root[data-theme="light"] .btn-primary,:root[data-theme="light"] .count,:root[data-theme="light"] .skip-link{color:#fff}
+:root[data-theme="light"] .btn-primary:hover{background:#c0213b;border-color:#c0213b}
+:root[data-theme="light"] select option{background:#fff;color:#1b1814}
+:root[data-theme="light"] .doc p,:root[data-theme="light"] .doc li{color:#3a352d}
+:root[data-theme="light"] .dev a:hover{color:#000}
+:root[data-theme="light"] .nav.open{background:rgba(255,255,255,.98)}
+:root[data-theme="light"] .globe-card,:root[data-theme="light"] .soc-card{background:var(--surface)}
+:root[data-theme="light"] dialog{background:var(--surface);color:var(--text)}
+:root[data-theme="light"] dialog::backdrop{background:rgba(24,20,14,.45)}
+:root[data-theme="light"] .consent{background:var(--surface)}
+/* a área do globo, o player e os avisos ficam sempre escuros */
+:root[data-theme="light"] :is(.stage,.player,.upd-bar){color-scheme:dark;color:var(--text);--bg:#0a0a0a;--bg2:#0f0f10;--surface:#141415;--surface2:#1e1e20;--line:rgba(236,228,214,.12);--text:#ece8e1;--dim:#9b968c;--blue:#8fa7b8;--blue2:#b4c7d4;--coral:#ff5d73;--hover:#182655;--ib1:#1f1f21;--ib2:#161617;--ibl:rgba(236,228,214,.14);--ibs:#000}
+:root[data-theme="light"] :is(.stage,.player) .btn-primary{color:#1a0610}
+:root[data-theme="light"] .stage{background-color:#0a0a0a}

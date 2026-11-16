@@ -16,7 +16,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'otherBtn', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -120,7 +120,6 @@ E.pFav.addEventListener('click', () => toggleFav(S.station));
 E.pNext.addEventListener('click', () => nextStation());
 E.pPrev.addEventListener('click', () => prevStation());
 E.pOther.addEventListener('click', () => otherStation());
-E.otherBtn.addEventListener('click', () => otherStation());
 
 async function tryQueue(cands, from = 0, max = 6){
   for (let k = 0; k < Math.min(max, cands.length); k++){
@@ -196,7 +195,6 @@ async function selectCity(c, { play = true, fly = true, keepList = false } = {})
   if (!keepList){
     S.queue = info.cands; S.qi = Math.max(0, info.cands.findIndex(s => S.station && s.id === S.station.id));
     E.locNote.textContent = NOTES[info.mode]; E.stList.replaceChildren(...info.cands.slice(0, 8).map(s => row(s, S.station && S.station.id === s.id)));
-    E.otherBtn.hidden = info.cands.length < 2;
   }
   E.globeHint.textContent = `${c.n}, ${c.p}.`;
   if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return; } S.navMove = false; await tryQueue(info.cands, 0); }
@@ -457,9 +455,17 @@ function initUpdate(){
   setInterval(check, 10 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 }
+// Tema claro/escuro (escolha salva neste aparelho; padrão escuro). O globo, o player e a área do globo mantêm o visual escuro.
+function setTheme(t, save = true){
+  const light = t === 'light'; document.documentElement.dataset.theme = light ? 'light' : 'dark'; if (save) store.set('theme', light ? 'light' : 'dark');
+  E.themeBtn.setAttribute('aria-pressed', light); E.themeBtn.setAttribute('aria-label', light ? 'Mudar para tema escuro' : 'Mudar para tema claro'); E.themeBtn.title = E.themeBtn.getAttribute('aria-label');
+  E.themeBtn.querySelector('use').setAttribute('href', light ? '#i-moon' : '#i-sun');
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = light ? '#f6f3ee' : '#0a0a0a';
+}
+setTheme(store.get('theme') === 'light' ? 'light' : 'dark', false);
+E.themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
 // Faz o globo caber inteiro na parte realmente visível da tela (entre o cabeçalho e o player), no PC e no celular.
 let fitDone = false;
-new ResizeObserver(() => document.documentElement.style.setProperty('--player-h', Math.ceil(E.player.getBoundingClientRect().height) + 'px')).observe(E.player);
 const setBanner = () => { const w = E.consent.parentElement; document.documentElement.style.setProperty('--banner-h', E.consent.hidden ? '0px' : Math.ceil(w.getBoundingClientRect().height) + 'px'); };
 new ResizeObserver(setBanner).observe(E.consent.parentElement); new MutationObserver(setBanner).observe(E.consent, { attributes: true, attributeFilter: ['hidden'] }); setBanner();
 const syncPad = () => {
@@ -499,7 +505,7 @@ async function boot(){
   const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); renderTab(); } }, { rootMargin: '400px' });
   io.observe(document.getElementById('descobrir'));
   const idle = window.requestIdleCallback || (f => setTimeout(f, 1200));
-  idle(() => { mountAds(); E.loc.classList.toggle('has-ad', !!document.querySelector('[data-ad="loc"][data-mounted]')); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
+  idle(() => { mountAds(); E.loc.classList.toggle('has-ad', !!document.querySelector('[data-ad^="loc"][data-mounted]')); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
   if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, trip, goNearMe, selectCity, playStation, randomCity, renderTab, radio };
 }
 boot().catch(e => { E.gridStatus.textContent = 'Não foi possível carregar os dados do site. Recarregue a página.'; console.error(e); });

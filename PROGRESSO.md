@@ -62,3 +62,8 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 ## Parte 11 — Remoção do assistente de IA
 - Removidos a seção "Assistente", assets/js/ai.js, a pasta api/ e as menções em Sobre/Privacidade/README. O site agora é 100% estático (sem função de servidor, sem chave de IA).
 - Painel do Globo grande só abre sob demanda (botão Painel); × e Esc saem.
+
+## Parte 12 — Painel lateral e tema
+- Painel lateral: duas janelas de anúncio (loc e loc2; loc2 usa o mesmo bloco de loc até existir um segundo bloco em adsSlots.loc2), botão "Outra estação" removido.
+- Tema claro/escuro (botão no cabeçalho, salvo no aparelho, padrão escuro). Área do globo, player e avisos ficam escuros nos dois temas.
+- Anúncios NÃO são atualizados sozinhos nem colocados em iframe (políticas do AdSense).
