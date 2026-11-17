@@ -1,3 +1,4 @@
+import { initAdCarousel } from './adcarousel.js';
 import { $, $$, h, icon, store, norm, debounce, flagUrl, shuffle, distKm } from './util.js';
 import * as radio from './radio.js';
 import { Player } from './player.js';
@@ -16,7 +17,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -174,18 +175,24 @@ async function replay(entry){
 }
 
 /* ---------- cidade, relógio e lista local ---------- */
+// Celular: o painel da cidade vira uma gaveta compacta acima do player; toque para abrir a lista de estações.
+function measureSheet(){ const r = document.documentElement.style; if (innerWidth >= 768 || !document.body.classList.contains('has-city')) return r.setProperty('--sheet-h', '0px'); if (!E.loc.classList.contains('open')) r.setProperty('--sheet-h', Math.ceil(E.loc.getBoundingClientRect().height) + 'px'); }
+new ResizeObserver(measureSheet).observe(E.loc); addEventListener('resize', measureSheet);
+function setSheet(on){ E.loc.classList.toggle('open', on); E.sheetBtn.setAttribute('aria-expanded', on); if (!on) requestAnimationFrame(measureSheet); }
+E.sheetBtn.addEventListener('click', () => setSheet(!E.loc.classList.contains('open')));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && E.loc.classList.contains('open')) setSheet(false); });
 let clockT = 0;
 function paintClock(){
   const c = S.city; if (!c) return;
   const k = clockInfo(c.z, c.a, c.o);
-  E.clockTime.textContent = k.time; E.clockWeek.textContent = k.weekday.charAt(0).toUpperCase() + k.weekday.slice(1); E.clockDate.textContent = k.date; E.clockTz.textContent = k.tzLabel;
+  E.locTime.textContent = k.time.slice(0, 5); E.clockTime.textContent = k.time; E.clockWeek.textContent = k.weekday.charAt(0).toUpperCase() + k.weekday.slice(1); E.clockDate.textContent = k.date; E.clockTz.textContent = k.tzLabel;
   E.clockDn.classList.toggle('night', !k.isDay); E.clockDn.replaceChildren(icon(k.isDay ? 'sun' : 'moon'), h('span', { text: k.isDay ? 'Dia' : 'Noite' }));
 }
 setInterval(paintClock, 1000);
 const NOTES = { city: 'Estações com o nome desta cidade.', near: 'Estações cadastradas até 80 km daqui.', country: 'Sem estação cadastrada na cidade. Mostrando as mais ouvidas do país.', none: 'Nenhuma estação cadastrada para este local.' };
 async function selectCity(c, { play = true, fly = true, keepList = false } = {}){
   if (fly && trip && trip.active) trip.pause();
-  S.city = c; const tok = ++S.sel; S.seen.add(c);
+  S.city = c; const tok = ++S.sel; S.seen.add(c); document.body.classList.add('has-city'); if (fly) setSheet(false);
   globe && (globe.setSelected(c), fly && globe.flyTo(c));
   E.locFlag.hidden = false; E.locFlag.src = flagUrl(c.c); E.locCity.textContent = c.n; E.locCountry.textContent = c.p;
   E.clock.hidden = false; paintClock(); store.set('city', c.n + '|' + c.c);
@@ -194,7 +201,7 @@ async function selectCity(c, { play = true, fly = true, keepList = false } = {})
   const info = await radio.forCity(c); if (tok !== S.sel) return;
   if (!keepList){
     S.queue = info.cands; S.qi = Math.max(0, info.cands.findIndex(s => S.station && s.id === S.station.id));
-    E.locNote.textContent = NOTES[info.mode]; E.stList.replaceChildren(...info.cands.slice(0, 8).map(s => row(s, S.station && S.station.id === s.id)));
+    E.sheetTxt.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = NOTES[info.mode]; E.stList.replaceChildren(...info.cands.slice(0, 8).map(s => row(s, S.station && S.station.id === s.id)));
   }
   E.globeHint.textContent = `${c.n}, ${c.p}.`;
   if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return; } S.navMove = false; await tryQueue(info.cands, 0); }
@@ -221,6 +228,7 @@ function armAuto(){
 let globe = null;
 function initGlobe(){
   globe = new Globe(E.globe, E.globeWrap, S.cities, {
+    onZoomed: z => { E.showAll.hidden = !z; },
     onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c); },
     onHover: c => { if (c) E.globeHint.textContent = `${c.n}, ${c.p}. Toque para ouvir.`; else if (S.city) E.globeHint.textContent = `${S.city.n}, ${S.city.p}.`; },
     onMiss: () => { E.globeHint.textContent = 'Nenhuma cidade perto desse ponto. Gire o globo ou aproxime.'; },
@@ -231,6 +239,10 @@ function initGlobe(){
   const idle = window.requestIdleCallback || (f => setTimeout(f, 600));
   idle(() => globe.loadMap(), { timeout: 2500 });
 }
+E.zIn2.addEventListener('click', () => globe && globe.zoom(1.3));
+E.zOut2.addEventListener('click', () => globe && globe.zoom(1 / 1.3));
+E.showAll.addEventListener('click', () => globe && globe.showAll());
+E.navGlobe.addEventListener('click', () => globe && globe.showAll());
 E.zIn.addEventListener('click', () => globe && globe.zoom(1.3));
 E.zOut.addEventListener('click', () => globe && globe.zoom(.77));
 // Globo grande: aumenta o globo, mostra o "no ar" e deixa só um mini player (não usa a tela cheia do navegador).
@@ -472,8 +484,9 @@ const syncPad = () => {
   if (!globe || document.body.classList.contains('bigglobe')) return;
   if (fitDone && scrollY > 2) return;
   const wr = E.globeWrap.getBoundingClientRect(), hd = document.querySelector('.site-header').getBoundingClientRect().bottom, pl = E.player ? E.player.getBoundingClientRect().top : innerHeight;
-  const cta = !E.geoCta.hidden && innerWidth < 1024 ? E.geoCta.offsetHeight + 56 : 0;
-  let t = Math.max(0, hd - wr.top) + 6, b = Math.max(0, wr.bottom - pl) + 30 + cta;
+  const peek = innerWidth < 768 && document.body.classList.contains('has-city') ? (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sheet-h')) || 80) : 0;
+  const cta = !E.geoCta.hidden && innerWidth < 1024 && !peek ? E.geoCta.offsetHeight + 56 : 0;
+  let t = Math.max(0, hd - wr.top) + 6, b = Math.max(0, wr.bottom - pl) + 30 + cta + peek;
   const room = wr.height - 180; if (t + b > room){ const f = room / (t + b); t *= f; b *= f; }
   globe.setPad(t, b); fitDone = true;
 };
@@ -499,7 +512,7 @@ async function boot(){
   E.countrySel.append(...S.countries.map(c => h('option', { value: c.c, text: c.p })));
   const last = store.get('city'); if (last){ const [n, cc] = String(last).split('|'); S.city = (S.byCC.get(cc) || []).find(c => c.n === n) || null; }
   if (S.city){ E.locFlag.hidden = false; E.locFlag.src = flagUrl(S.city.c); E.locCity.textContent = S.city.n; E.locCountry.textContent = S.city.p; E.clock.hidden = false; paintClock(); }
-  initGlobe(); initTrip(); initGeo(); initUpdate();
+  initGlobe(); initTrip(); initGeo(); initUpdate(); initAdCarousel(E.adCar);
   const q = new URLSearchParams(location.search).get('q'); if (q){ E.q.value = q; doSearch(); }
   // descoberta só quando a seção se aproxima da tela
   const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); renderTab(); } }, { rootMargin: '400px' });

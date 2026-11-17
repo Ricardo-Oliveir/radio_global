@@ -142,22 +142,26 @@ void main(){
     return best;
   }
   setSelected(c){ this.sel = c; this.selT = performance.now(); this.invalidate(); }
-  zoom(f){ this.kT = Math.max(.85, Math.min(7, (this.kT ?? this.k) * f)); this.invalidate(); }
+  zoom(f){ this.kT = Math.max(.85, Math.min(7, (this.kT ?? (this.anim ? this.anim.k1 : this.k)) * f)); this.invalidate(); }
   flyTo(c, k = null, ms = null){
-    const to = [c.o, c.a], from = [this.lon, this.lat], k0 = this.k, k1 = k ?? Math.max(1, Math.min(this.k, 1.4));
+    const to = [c.o, c.a], from = [this.lon, this.lat], k0 = this.k, k1 = k ?? Math.max(1, this.kT ?? this.k);
     const km = distKm(from[0], from[1], to[0], to[1]);
     ms = ms ?? Math.min(2600, 700 + km * .22);
-    if (this.reduce || km < 1){ this.lon = to[0]; this.lat = to[1]; this.k = k1; this.anim = null; this.invalidate(); return; }
-    this.kT = null; this.anim = { t0: performance.now(), ms, from, to, k0, k1, lift: Math.min(.35, km / 18000) };
+    if (this.reduce || km < 1){ this.lastTouch = performance.now(); this.lon = to[0]; this.lat = to[1]; this.k = k1; this.anim = null; this.invalidate(); return; }
+    this.lastTouch = performance.now(); this.kT = null; this.anim = { t0: performance.now(), ms, from, to, k0, k1, lift: Math.min(.35, km / 18000) };
     this.invalidate();
   }
   step(now){
     const a = this.anim; if (!a) return false;
     const t = Math.min(1, (now - a.t0) / a.ms), e = ease(t), p = slerp(a.from, a.to, e);
     this.lon = p[0]; this.lat = p[1]; this.k = a.k0 + (a.k1 - a.k0) * e - a.lift * Math.sin(Math.PI * t);
-    if (t >= 1){ this.anim = null; this.k = a.k1; this.kT = null; }
+    if (t >= 1){ this.anim = null; this.k = a.k1; }
     return true;
   }
+  // com uma cidade em foco o globo fica parado por 1 minuto antes de voltar a girar; com zoom aproximado nunca gira sozinho
+  get idleMs(){ return this.k > 1.25 ? Infinity : this.sel ? 60000 : 6000; }
+  // volta a mostrar o globo inteiro (sem mudar a direção)
+  showAll(){ this.kT = 1; this.lastTouch = performance.now(); this.invalidate(); }
   setSpin(on){ this.spin = on && !this.reduce; if (this.spin) this.invalidate(); }
   invalidate(){ if (!this.raf) this.raf = requestAnimationFrame(t => this.draw(t)); }
   draw(now = performance.now()){
@@ -167,7 +171,8 @@ void main(){
     if (this.kT != null && !this.anim){ const dk = this.kT - this.k; if (Math.abs(dk) < .002){ this.k = this.kT; this.kT = null; } else { this.k += dk * (1 - Math.exp(-dt / 110)); more = true; } }
     if (this.follow && this.plane && !this.anim && !this.ptrs.size && now - this.lastTouch > 1500){ const c = slerp([this.lon, this.lat], [this.plane.lon, this.plane.lat], 1 - Math.exp(-dt / 650)); this.lon = c[0]; this.lat = c[1]; more = true; }
     if (this.plane && this.follow) more = true;
-    if (this.spin && !more && now - this.lastTouch > 6000 && !this.ptrs.size){ this.lon += .004 * dt; more = true; }
+    if (this.spin && !more && now - this.lastTouch > this.idleMs && !this.ptrs.size){ this.lon += .004 * dt; more = true; }
+    else if (this.spin && !more && !this.ptrs.size && isFinite(this.idleMs)){ clearTimeout(this._st); this._st = setTimeout(() => this.invalidate(), Math.max(200, this.idleMs - (now - this.lastTouch)) + 60); }
     const { ctx, W, H, dpr } = this, R = this.R, cx = W / 2, cy = this.CY, useGL = !!(this.G && this.tex && this.tex.gl);
     if (useGL) this.renderGL(R, cx, cy);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
@@ -178,7 +183,7 @@ void main(){
     sea.addColorStop(0, '#2a67d8'); sea.addColorStop(.55, '#123a96'); sea.addColorStop(1, '#091f5b');
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.2832); ctx.clip(); if (!useGL){ ctx.fillStyle = sea; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
     if (useGL){ /* esfera já desenhada pela placa de vídeo */ } else if (this.tex){
-      const moving = !!(this.anim || this.ptrs.size || (this.spin && now - this.lastTouch > 6000)); this.drawTex(R, cx, cy, moving ? .55 : 1);
+      const moving = !!(this.anim || this.ptrs.size || (this.spin && now - this.lastTouch > this.idleMs)); this.drawTex(R, cx, cy, moving ? .55 : 1);
     } else if (this.path){
       this.proj.rotate([-this.lon, -this.lat]).scale(R).translate([cx, cy]);
       ctx.beginPath(); this.path(this.grat); ctx.strokeStyle = 'rgba(170,205,255,.13)'; ctx.lineWidth = .6; ctx.stroke();
@@ -227,6 +232,7 @@ void main(){
       ctx.fillStyle = '#ece8e1'; ctx.textBaseline = 'middle'; ctx.fillText(c.n, lx + 8, ly + 11);
     }
     if (!this.canvas.classList.contains('on')) { this.canvas.classList.add('on'); this.cb.onFirstDraw && this.cb.onFirstDraw(); }
+    const zoomed = this.k > 1.15; if (zoomed !== this._zoomed){ this._zoomed = zoomed; this.cb.onZoomed && this.cb.onZoomed(zoomed); }
     if (more) this.invalidate();
   }
   bind(){
@@ -253,7 +259,8 @@ void main(){
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
     cv.addEventListener('pointerleave', () => { if (this.hover){ this.hover = null; this.cb.onHover && this.cb.onHover(null); this.invalidate(); } });
-    cv.addEventListener('wheel', e => { e.preventDefault(); this.zoom(e.deltaY < 0 ? 1.12 : .89); }, { passive: false });
+    // zoom proporcional ao movimento: o touchpad manda muitos eventos pequenos, o mouse manda poucos grandes; pinça no touchpad vem com ctrlKey
+    cv.addEventListener('wheel', e => { e.preventDefault(); const u = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1; const dy = Math.max(-120, Math.min(120, e.deltaY * u)); this.zoom(Math.exp(-dy * (e.ctrlKey ? .01 : .0016))); }, { passive: false });
     cv.addEventListener('keydown', e => {
       const s = 8 / this.k, key = e.key; let used = true;
       if (key === 'ArrowLeft') this.lon -= s; else if (key === 'ArrowRight') this.lon += s;

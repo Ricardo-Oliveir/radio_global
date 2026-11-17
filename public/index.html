@@ -89,7 +89,7 @@
       <input id="q" name="q" type="search" placeholder="Buscar rádio, cidade ou país" aria-label="Buscar rádio, cidade ou país" enterkeyhint="search" autocomplete="off">
     </form>
     <nav class="nav" id="nav" aria-label="Principal">
-      <a href="#globo">Globo</a>
+      <a href="#globo" id="navGlobe">Globo</a>
       <a href="#descobrir">Descobrir</a>
       <a href="#favoritos">Favoritos <span class="count" id="favCount" hidden>0</span></a>
       <a href="/sobre.html">Sobre</a>
@@ -125,12 +125,14 @@
           <button class="icon-btn" id="zOut" type="button" aria-label="Afastar"><svg class="ic"><use href="#i-minus"/></svg></button>
           <button class="icon-btn" id="zIn" type="button" aria-label="Aproximar"><svg class="ic"><use href="#i-plus"/></svg></button>
         </div>
+        <button class="btn" id="showAll" type="button" hidden><svg class="ic"><use href="#i-minus"/></svg><span>Globo inteiro</span></button>
         <button class="btn" id="randomBtn" type="button"><svg class="ic"><use href="#i-swap"/></svg><span>Cidade aleatória</span></button>
         <button class="btn" id="nearBtn" type="button"><svg class="ic"><use href="#i-pin"/></svg><span>Perto de mim</span></button>
         <label class="select-wrap"><span class="sr-only">Ir para um país</span>
           <select id="countrySel"><option value="">Ir para um país…</option></select></label>
         <button class="btn" id="fullBtn" type="button" aria-pressed="false"><svg class="ic"><use href="#i-full"/></svg><span>Globo grande</span></button>
       </div>
+      <div class="zoom-fab" role="group" aria-label="Zoom do globo"><button class="icon-btn" id="zIn2" type="button" aria-label="Aproximar"><svg class="ic"><use href="#i-plus"/></svg></button><button class="icon-btn" id="zOut2" type="button" aria-label="Afastar"><svg class="ic"><use href="#i-minus"/></svg></button></div>
       <div class="bg-fabs" id="bgFabs"><button class="icon-btn" id="bgExit" type="button" aria-label="Sair do globo grande"><svg class="ic"><use href="#i-close"/></svg></button><button class="btn" id="bgPanel" type="button" aria-expanded="false" aria-controls="onAir"><svg class="ic"><use href="#i-menu"/></svg><span>Painel</span></button></div>
       <aside class="onair" id="onAir" hidden aria-label="No ar agora">
         <div class="oa-now"><span class="oa-tag">NO AR</span><b id="oaStation">Nada tocando</b><span class="oa-place" id="oaPlace"></span><span class="oa-time" id="oaTime"></span></div>
@@ -162,6 +164,8 @@
       <div class="loc-head">
         <img class="flag" id="locFlag" alt="" width="28" height="21" hidden>
         <div class="loc-names"><h2 id="locCity">Nenhuma cidade escolhida</h2><p id="locCountry">Toque num ponto do globo.</p></div>
+        <time class="loc-time" id="locTime"></time>
+        <button class="sheet-btn" id="sheetBtn" type="button" aria-expanded="false" aria-controls="loc"><span id="sheetTxt">Estações</span></button>
       </div>
       <div class="clock" id="clock" hidden>
         <div class="clock-main"><time id="clockTime">--:--:--</time><span class="dn" id="clockDn"><svg class="ic"><use href="#i-sun"/></svg><span>Dia</span></span></div>
@@ -178,7 +182,7 @@
         <h3>Semelhantes à que está tocando</h3>
         <ul class="st-list" id="similarList"></ul>
       </div>
-    <div class="ad ad-loc" data-ad="loc2" data-show="all" hidden></div>
+    <div class="ad ad-car" id="adCar" hidden></div>
     </aside>
   </section>
 
