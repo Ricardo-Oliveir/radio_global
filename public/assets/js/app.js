@@ -17,7 +17,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'pageBack', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -432,11 +432,12 @@ function closeDoc(push = true){
 }
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+  const raw = a.getAttribute('href');
+  if (raw.startsWith('#') && !E.pageView.hidden){ e.preventDefault(); closeDoc(); const el = raw.length > 1 && document.querySelector(raw); if (el) el.scrollIntoView(); else scrollTo({ top: 0 }); return; }
   const u = new URL(a.href, location.href); if (u.origin !== location.origin) return;
   if (DOC.test(u.pathname)){ e.preventDefault(); openDoc(u.pathname + u.hash); }
   else if (!E.pageView.hidden && (u.pathname === '/' || u.pathname === '/index.html')){ e.preventDefault(); closeDoc(); if (u.hash){ const el = document.querySelector(u.hash); el && el.scrollIntoView(); } else scrollTo({ top: 0 }); }
 });
-E.pageBack.addEventListener('click', () => { closeDoc(); });
 addEventListener('popstate', () => { if (DOC.test(location.pathname)) openDoc(location.pathname + location.hash, false); else closeDoc(false); });
 
 
