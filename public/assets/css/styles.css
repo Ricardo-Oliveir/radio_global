@@ -554,3 +554,13 @@ body.bigglobe .zoom-fab{display:flex}
   .globe-bar #showAll{grid-column:1 / -1}
   .globe-bar .btn span{overflow:hidden;text-overflow:ellipsis}
 }
+
+/* ===== Tema claro mais suave (menos branco puro) ===== */
+:root[data-theme="light"]{--surface:#f3efe8;--surface2:#e8e2d7;--glass:rgba(243,239,232,.88);--player-bg:rgba(240,236,228,.95);--bg:#ece8e0;--bg2:#e4dfd5;--line:rgba(24,20,14,.11)}
+:root[data-theme="light"] .site-header{background:rgba(236,232,224,.92)}
+:root[data-theme="light"] .globe-card,:root[data-theme="light"] .soc-card{background:var(--surface)}
+:root[data-theme="light"] .loc-card{background:rgba(236,231,222,.85);box-shadow:none}
+:root[data-theme="light"] .loc-card .ad,:root[data-theme="light"] #adCar{background:rgba(24,20,14,.04);border-color:rgba(24,20,14,.08)}
+:root[data-theme="light"] .stage::before{opacity:.8}
+:root[data-theme="light"] select option{background:#f3efe8}
+:root[data-theme="light"] .nav.open{background:rgba(240,236,228,.98)}

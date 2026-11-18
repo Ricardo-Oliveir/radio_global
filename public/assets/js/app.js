@@ -473,7 +473,7 @@ function setTheme(t, save = true){
   const light = t === 'light'; document.documentElement.dataset.theme = light ? 'light' : 'dark'; if (save) store.set('theme', light ? 'light' : 'dark');
   E.themeBtn.setAttribute('aria-pressed', light); E.themeBtn.setAttribute('aria-label', light ? 'Mudar para tema escuro' : 'Mudar para tema claro'); E.themeBtn.title = E.themeBtn.getAttribute('aria-label');
   E.themeBtn.querySelector('use').setAttribute('href', light ? '#i-moon' : '#i-sun');
-  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = light ? '#f6f3ee' : '#0a0a0a';
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = light ? '#ece8e0' : '#0a0a0a';
 }
 setTheme(store.get('theme') === 'light' ? 'light' : 'dark', false);
 E.themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
