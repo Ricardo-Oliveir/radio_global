@@ -1,6 +1,6 @@
 import config from './config.js';
 // Cliente do diretório Radio Browser (dados reais). Nada aqui é inventado: o que não vem da API não aparece.
-import { norm, shuffle } from './util.js';
+import { norm, shuffle, distKm } from './util.js';
 const HOSTS = ['https://all.api.radio-browser.info', 'https://de1.api.radio-browser.info', 'https://nl1.api.radio-browser.info', 'https://at1.api.radio-browser.info'];
 let hostI = 0;
 const cache = new Map();
@@ -55,3 +55,26 @@ export async function forCity(city){
   return { mode: list.length ? 'country' : 'none', cands: topShuffle(list) };
 }
 const topShuffle = list => shuffle(list.slice(0, 5)).concat(list.slice(5));
+
+// Destino qualquer (viagem): nome da cidade no país → rádios por proximidade em 10/30/75/150 km. Nunca apresenta rádio vizinha como da cidade.
+export async function forPlace(place){
+  const withD = l => l.map(s => ({ ...s, dist: s.lat != null && s.lon != null ? distKm(place.o, place.a, +s.lon, +s.lat) : null }));
+  if (place.c){
+    const n = norm(place.n);
+    const [byN, byS] = await Promise.all([
+      getJSON('/json/stations/search?' + q({ ...BASE, countrycode: place.c, name: place.n, limit: 60 })),
+      getJSON('/json/stations/search?' + q({ ...BASE, countrycode: place.c, state: place.n, limit: 60 }))
+    ]);
+    const l = withD(clean([...(byN || []).filter(s => norm(s.name).includes(n) || norm(s.state) === n), ...(byS || []).filter(s => norm(s.state) === n)]));
+    if (l.length) return { mode: 'city', cands: topShuffle(l) };
+  }
+  const geo = d => search({ has_geo_info: 'true', geo_lat: place.a, geo_long: place.o, geo_distance: d * 1000 }, d > 40 ? 80 : 60);
+  const [near, far] = await Promise.all([geo(30), geo(150)]);
+  const seen = new Set(), all = withD([...near, ...far]).filter(s => s.dist != null && !seen.has(s.id) && seen.add(s.id)).sort((x, y) => x.dist - y.dist);
+  for (const r of [10, 30, 75, 150]){
+    const l = all.filter(s => s.dist <= r);
+    if (l.length) return { mode: 'near', radius: r, min: Math.round(l[0].dist), cands: l.slice(0, 40) };
+  }
+  if (place.c){ const l = withD(await search({ countrycode: place.c }, 40)); if (l.length) return { mode: 'country', cands: topShuffle(l) }; }
+  return { mode: 'none', cands: [] };
+}

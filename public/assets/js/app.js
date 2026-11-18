@@ -7,6 +7,7 @@ import { clockInfo } from './clock.js';
 import { mountAds, applyConsent, adsEnabled } from './ads.js';
 import config from './config.js';
 import { Trip } from './trip.js';
+import { geocode, localMatches } from './geo.js';
 import { Static, Meter } from './fx.js';
 import { nearestCity } from './util.js';
 
@@ -17,7 +18,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'zIn', 'zOut', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn', 'tripQ', 'tripRes', 'tripSt'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -59,7 +60,7 @@ function card(st, extra){
 function row(st, current){
   reg(st);
   return h('li', {}, h('button', { class: 'st-row', type: 'button', dataset: { act: 'play', id: st.id }, 'aria-current': current ? 'true' : null },
-    logo(st), h('span', { class: 't' }, h('b', { text: st.name }), h('small', { text: subline(st) || 'Dados não informados' }))));
+    logo(st), h('span', { class: 't' }, h('b', { text: st.name }), h('small', { text: (subline(st) || 'Dados não informados') + (st.dist != null && S.city && S.city.dest ? ` · ${Math.round(st.dist)} km do destino` : '') }))));
 }
 function refreshFavUI(){
   E.favCount.hidden = !S.favs.length; E.favCount.textContent = S.favs.length;
@@ -189,6 +190,7 @@ function paintClock(){
   E.clockDn.classList.toggle('night', !k.isDay); E.clockDn.replaceChildren(icon(k.isDay ? 'sun' : 'moon'), h('span', { text: k.isDay ? 'Dia' : 'Noite' }));
 }
 setInterval(paintClock, 1000);
+const noteFor = (c, i) => !c.dest ? NOTES[i.mode] : i.mode === 'city' ? `Estações de ${c.n}.` : i.mode === 'near' ? `Nenhuma estação cadastrada exatamente em ${c.n}. Encontramos rádios a partir de ${i.min} km do destino (busca até ${i.radius} km).` : i.mode === 'country' ? `Nenhuma estação perto de ${c.n}. Mostrando as mais ouvidas do país.` : NOTES.none;
 const NOTES = { city: 'Estações com o nome desta cidade.', near: 'Estações cadastradas até 80 km daqui.', country: 'Sem estação cadastrada na cidade. Mostrando as mais ouvidas do país.', none: 'Nenhuma estação cadastrada para este local.' };
 async function selectCity(c, { play = true, fly = true, keepList = false } = {}){
   if (fly && trip && trip.active) trip.pause();
@@ -198,10 +200,10 @@ async function selectCity(c, { play = true, fly = true, keepList = false } = {})
   E.clock.hidden = false; paintClock(); store.set('city', c.n + '|' + c.c);
   E.globeHint.textContent = `${c.n}, ${c.p}. ${play ? 'Buscando a rádio…' : ''}`;
   if (!keepList){ E.locStations.hidden = false; E.locNote.textContent = 'Buscando estações…'; E.stList.replaceChildren(); }
-  const info = await radio.forCity(c); if (tok !== S.sel) return;
+  const info = c.dest ? await radio.forPlace(c) : await radio.forCity(c); if (tok !== S.sel) return;
   if (!keepList){
     S.queue = info.cands; S.qi = Math.max(0, info.cands.findIndex(s => S.station && s.id === S.station.id));
-    E.sheetTxt.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = NOTES[info.mode]; E.stList.replaceChildren(...info.cands.slice(0, 8).map(s => row(s, S.station && S.station.id === s.id)));
+    E.sheetTxt.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = noteFor(c, info); E.stList.replaceChildren(...info.cands.slice(0, 8).map(s => row(s, S.station && S.station.id === s.id)));
   }
   E.globeHint.textContent = `${c.n}, ${c.p}.`;
   if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return; } S.navMove = false; await tryQueue(info.cands, 0); }
@@ -398,7 +400,23 @@ function initTrip(){
     const idx = n => S.cities.findIndex(c => c.n === n), from = idx('Jacutinga'), to = idx('Tóquio');
     E.tripFrom.value = String(from >= 0 ? from : 0); E.tripTo.value = String(to >= 0 ? to : S.cities.length - 1);
   };
-  E.tripBtn.addEventListener('click', () => { fill(); E.tripDlg.showModal(); });
+  let tctl = null, tt = 0, shown = [];
+  const pick = p => { E.tripDlg.close(); trip.active && trip.stop(); player.unlock(); globe.setSpin(false); selectCity(p, { play: true }); };
+  const paintRes = (list, msg) => {
+    shown = list; E.tripSt.textContent = msg || '';
+    E.tripRes.replaceChildren(...list.map(p => h('li', {}, h('button', { class: 'st-row', type: 'button', onclick: () => pick(p) }, h('span', { class: 't' }, h('b', { text: p.n }), h('small', { text: p.sub || p.p })))))); };
+  E.tripQ.addEventListener('input', () => {
+    const v = E.tripQ.value; clearTimeout(tt); if (tctl) tctl.abort();
+    const loc = localMatches(S.cities, v); paintRes(loc, v.trim().length < 2 ? '' : 'Buscando…');
+    if (v.trim().length < 2) return;
+    tt = setTimeout(async () => {
+      tctl = new AbortController(); const r = await geocode(v, tctl.signal); if (E.tripQ.value !== v) return;
+      const seen = new Set(), all = [...loc, ...r].filter(p => { const k = norm(p.n) + (p.c || '') + Math.round(p.a); return seen.has(k) ? false : seen.add(k); }).slice(0, 8);
+      paintRes(all, all.length ? '' : 'Nenhum destino encontrado.');
+    }, 250);
+  });
+  E.tripQ.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); if (shown[0]) pick(shown[0]); } });
+  E.tripBtn.addEventListener('click', () => { fill(); E.tripQ.value = ''; paintRes([], ''); E.tripDlg.showModal(); E.tripQ.focus(); });
   E.tripGo.addEventListener('click', () => {
     const A = S.cities[+E.tripFrom.value], B = S.cities[+E.tripTo.value];
     if (!A || !B || A === B){ E.tripDlg.close(); return; }

@@ -71,3 +71,9 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 ## Parte 13 — Painel de anúncios (PC) e reestruturação mobile
 - PC: painel lateral usa a altura toda; AdSense em cima, carrossel (fundo desfocado) embaixo. Opcional `adsSlots.locResp` para bloco AdSense responsivo maior.
 - Mobile: barra do globo em grade 2x2, zoom +/− sobre o globo, nada escondido atrás da gaveta de cidade. 264 testes ok.
+
+## Parte 14 — Viagem por qualquer cidade
+- Botão Viagem: "Para onde você quer viajar?" com autocomplete (cidades locais + geocodificação Open-Meteo, sem chave).
+- Destino separado de estação: rádios da cidade; senão por proximidade 10/30/75/150 km, com aviso e "X km do destino".
+- Rota entre duas cidades continua, dentro de "Ou faça uma viagem de avião".
+- Pendente da proposta: bottom sheet 3 alturas, mini-player expansível, histórico, saúde dos streams, URLs/SEO por cidade, marcador duplo (destino x rádio).

@@ -259,11 +259,17 @@
 <dialog id="tripDlg" aria-labelledby="tripTitleDlg">
   <form method="dialog" class="dlg">
     <div class="dlg-head"><h2 id="tripTitleDlg">Fazer uma viagem</h2><button class="icon-btn" value="close" aria-label="Fechar"><svg class="ic"><use href="#i-close"/></svg></button></div>
+    <label class="trip-q"><b>Para onde você quer viajar?</b><input id="tripQ" type="search" autocomplete="off" autocapitalize="words" enterkeyhint="go" placeholder="Digite uma cidade (ex.: Tóquio, Reykjavik, Jacutinga)"></label>
+    <p class="dim trip-st" id="tripSt" role="status"></p>
+    <ul class="trip-res" id="tripRes"></ul>
+    <p class="dim trip-lead">Qualquer cidade do mundo serve. O globo viaja até lá e procura rádios na cidade; se não houver, mostra as mais próximas e diz a distância.</p>
+    <details class="trip-route"><summary>Ou faça uma viagem de avião entre duas cidades</summary>
     <p class="dim trip-lead">O globo viaja devagar de uma cidade a outra, passa por cidades do caminho e sintoniza uma rádio local em cada parada.</p>
     <label class="row"><span><b>Saída</b></span><select id="tripFrom"></select></label>
     <label class="row"><span><b>Destino</b></span><select id="tripTo"></select></label>
     <label class="row"><span><b>Tempo em cada parada</b></span><select id="tripDwell"><option value="30000">30 segundos</option><option value="60000" selected>1 minuto</option><option value="120000">2 minutos</option><option value="300000">5 minutos</option></select></label>
     <div class="dlg-foot"><button class="btn" value="cancel">Cancelar</button><button class="btn btn-primary" id="tripGo" value="go">Iniciar viagem</button></div>
+    </details>
   </form>
 </dialog>
 
