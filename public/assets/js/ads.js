@@ -19,6 +19,7 @@ export function AdFixed(pos, w, hh){ return h('ins', { class: 'adsbygoogle ad-sl
 export function AdContainer(pos, width = 0){
   const box = h('div', { class: 'ad-inner' }, h('span', { class: 'ad-label', text: 'Publicidade' }));
   if (preview && !adsEnabled()){ box.append(h('div', { class: 'ad-slot', text: 'Espaço reservado para anúncio (' + pos + ')' })); return box; }
+  if (pos === 'loc' && config.adsSlots && config.adsSlots.locResp && width >= 280){ box.append(AdResponsive('locResp')); return box; } // bloco responsivo (opcional) preenche o painel todo
   box.append(pos.startsWith('loc') ? (width >= 320 ? AdFixed(pos, 320, 100) : AdFixed(pos, 234, 60)) : pos === 'side' ? AdResponsive(pos) : AdBanner(pos)); return box;
 }
 const mq = { desktop: matchMedia('(min-width:768px)'), mobile: matchMedia('(max-width:767px)'), wide: matchMedia('(min-width:1280px)') };

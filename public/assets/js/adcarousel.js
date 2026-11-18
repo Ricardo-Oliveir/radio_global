@@ -16,8 +16,9 @@ export async function initAdCarousel(root){
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let i = 0, timer = 0, paused = false;
   const slides = items.map((it, n) => {
-    const img = h('img', { src: it.src, alt: 'Publicidade', loading: n ? 'lazy' : 'eager', decoding: 'async', draggable: 'false' });
-    const el = it.link && /^https:\/\//.test(it.link) ? h('a', { class: 'car-slide', href: it.link, target: '_blank', rel: 'sponsored noopener noreferrer', 'aria-label': 'Publicidade (abre em nova aba)' }, img) : h('div', { class: 'car-slide' }, img);
+    const img = h('img', { class: 'car-img', src: it.src, alt: 'Publicidade', loading: n ? 'lazy' : 'eager', decoding: 'async', draggable: 'false' });
+    const bg = h('img', { class: 'car-bg', src: it.src, alt: '', 'aria-hidden': 'true', loading: n ? 'lazy' : 'eager', decoding: 'async' });
+    const el = it.link && /^https:\/\//.test(it.link) ? h('a', { class: 'car-slide', href: it.link, target: '_blank', rel: 'sponsored noopener noreferrer', 'aria-label': 'Publicidade (abre em nova aba)' }, bg, img) : h('div', { class: 'car-slide' }, bg, img);
     img.addEventListener('error', () => { const k = slides.indexOf(el); if (k < 0) return; slides.splice(k, 1); dots.splice(k, 1)[0].remove(); el.remove(); if (!slides.length) root.hidden = true; else go(Math.min(i, slides.length - 1)); });
     return el;
   });

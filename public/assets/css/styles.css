@@ -463,7 +463,7 @@ body.bigglobe .geo-cta{display:none}
 .ad-car .ad-inner{display:flex;flex-direction:column;align-items:stretch;gap:2px;width:100%;max-width:100%}
 .ad-car .ad-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .car{width:100%;max-width:320px;margin-inline:auto}
-.car-view{position:relative;aspect-ratio:320/100;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--line)}
+.car-view{position:relative;aspect-ratio:2/1;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--line)}
 .car-slide{position:absolute;inset:0;display:block;opacity:0;transition:opacity .5s ease;pointer-events:none}
 .car-slide.on{opacity:1;pointer-events:auto}
 .car-slide img{width:100%;height:100%;object-fit:contain}
@@ -506,3 +506,51 @@ body.bigglobe .geo-cta{display:none}
 body.bigglobe .zoom-fab{display:flex}
 .zoom-fab{grid-area:globe;align-self:center;justify-self:end;flex-direction:column;gap:8px;margin-right:var(--gut);z-index:6}
 .zoom-fab .icon-btn{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* carrossel: fundo desfocado da própria imagem preenche as sobras, a imagem aparece inteira */
+.car-bg{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;filter:blur(22px) saturate(1.2);opacity:.55;pointer-events:none}
+.car-slide img:not(.car-bg){position:relative}
+/* PC: a coluna da cidade usa a altura toda e o carrossel ocupa o espaço que sobra, até embaixo */
+@media (min-width:1024px){
+  .loc-card{align-self:stretch;display:flex;flex-direction:column}
+  .ad-car{flex:1 1 auto;display:flex;flex-direction:column;min-height:200px;margin:0}
+  .ad-car .ad-inner{flex:1 1 auto;min-height:0}
+  .ad-car .car{flex:1 1 auto;min-height:0;max-width:none;display:flex;flex-direction:column}
+  .ad-car .car-view{flex:1 1 auto;aspect-ratio:auto;min-height:160px}
+}
+
+/* painel lateral (PC): as duas janelas de propaganda ocupam todo o espaço até o fim do painel */
+.car-bg{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;filter:blur(18px) saturate(1.15);opacity:.5}
+.car-slide img.car-img{position:relative}
+.car-slide:has(.car-bg) img.car-bg{height:124%}
+@media (min-width:768px){
+  .loc-card{display:flex;flex-direction:column}
+  .loc-card .ad{margin:0;max-width:none;width:100%;display:flex;flex-direction:column;flex:1 1 0;min-height:150px}
+  .loc-card #adCar{flex:2 1 0;min-height:220px}
+  .loc-card .ad .ad-inner{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;min-height:0;overflow:visible}
+  .loc-card #adCar .ad-inner{align-items:stretch;justify-content:flex-start}
+  .loc-card .car{flex:1;display:flex;flex-direction:column;max-width:none;margin:0;min-height:0}
+  .loc-card .car-view{flex:1;aspect-ratio:auto;min-height:150px}
+  .loc-card .ad:has(ins[data-ad-status="unfilled"]){display:none}
+}
+
+/* ===== Mobile: barra do globo em uma linha, zoom sobre o globo ===== */
+@media (max-width:767px){
+  .zoom-fab{display:flex;margin-right:10px;gap:6px}
+  .zoom-fab .icon-btn{width:44px;height:44px}
+  .globe-bar{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:8px var(--gut) 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .globe-bar::-webkit-scrollbar{display:none}
+  .globe-bar > *{flex:0 0 auto;scroll-snap-align:start}
+  .globe-bar .seg{display:none}
+  .globe-bar .btn,.globe-bar select{min-height:44px;white-space:nowrap}
+  .globe-bar .select-wrap{min-width:150px}
+  .geo-cta{margin-bottom:6px}
+}
+@media (max-width:767px){.globe-bar{padding-left:16px!important;padding-right:16px!important;scroll-padding-left:16px}}
+@media (max-width:767px){
+  .globe-bar{display:grid;grid-template-columns:1fr 1fr;overflow:visible;gap:8px;padding:8px 16px 10px!important}
+  .globe-bar > *{min-width:0}
+  .globe-bar .btn,.globe-bar .select-wrap,.globe-bar select{width:100%;min-width:0;justify-content:center}
+  .globe-bar #showAll{grid-column:1 / -1}
+  .globe-bar .btn span{overflow:hidden;text-overflow:ellipsis}
+}

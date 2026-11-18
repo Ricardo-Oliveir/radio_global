@@ -67,3 +67,7 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Painel lateral: duas janelas de anúncio (loc e loc2; loc2 usa o mesmo bloco de loc até existir um segundo bloco em adsSlots.loc2), botão "Outra estação" removido.
 - Tema claro/escuro (botão no cabeçalho, salvo no aparelho, padrão escuro). Área do globo, player e avisos ficam escuros nos dois temas.
 - Anúncios NÃO são atualizados sozinhos nem colocados em iframe (políticas do AdSense).
+
+## Parte 13 — Painel de anúncios (PC) e reestruturação mobile
+- PC: painel lateral usa a altura toda; AdSense em cima, carrossel (fundo desfocado) embaixo. Opcional `adsSlots.locResp` para bloco AdSense responsivo maior.
+- Mobile: barra do globo em grade 2x2, zoom +/− sobre o globo, nada escondido atrás da gaveta de cidade. 264 testes ok.
