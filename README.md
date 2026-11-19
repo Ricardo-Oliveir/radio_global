@@ -3,12 +3,12 @@
 
 Plataforma para explorar o planeta pelas rádios ao vivo: gire o globo, escolha uma cidade e ouça as estações de lá, com horário local, favoritos, histórico e descoberta por país, continente e categoria.
 
-Site estático (HTML, CSS e JavaScript sem framework) com uma função serverless opcional para o assistente de descoberta. Pronto para a Vercel.
+Site estático (HTML, CSS e JavaScript sem framework). Pronto para a Vercel.
 
 ## Estrutura
 | Caminho | Função |
 |---|---|
-| `index.html` | Página inicial: cabeçalho, globo, local selecionado, descoberta, favoritos, assistente, rodapé e player |
+| `index.html` | Página inicial: cabeçalho, globo, local selecionado, descoberta, favoritos, rodapé e player |
 | `sobre.html`, `privacidade.html`, `cookies.html`, `termos.html` | Páginas institucionais e legais |
 | `assets/css/styles.css` | Estilos, mobile-first, breakpoints 375 / 481 / 768 / 1024 / 1280 |
 | `assets/js/app.js` | Orquestra interface, busca, favoritos, histórico e navegação |
@@ -17,7 +17,6 @@ Site estático (HTML, CSS e JavaScript sem framework) com uma função serverles
 | `assets/js/radio.js` | Cliente do diretório Radio Browser (dados reais) |
 | `assets/js/clock.js` | Relógio local via `Intl.DateTimeFormat` + indicador dia/noite pela altura do Sol |
 | `assets/js/ads.js` | `AdContainer`, `AdBanner`, `AdResponsive` e carregamento único do AdSense |
-| `assets/js/ai.js` e `api/assistant.js` | Assistente de descoberta (a chave fica só no servidor) |
 | `assets/cities.json` | 1.997 cidades, 219 países, com fuso IANA e continente |
 | `scripts/build.mjs` | Build sem dependências: injeta variáveis, gera `config.js`, `ads.txt`, `robots.txt`, `sitemap.xml` |
 | `vercel.json` | Comando de build, saída `dist` e cabeçalhos de cache e segurança |
@@ -34,13 +33,11 @@ Veja `.env.example`. Todas são opcionais.
 
 | Variável | Para quê |
 |---|---|
-| `SITE_URL` | URL canônica, Open Graph e sitemap (padrão `https://dioglobal-phi.vercel.app`) |
+| `SITE_URL` | URL canônica, Open Graph e sitemap (padrão `https://radioglobal-phi.vercel.app`) |
 | `GOOGLE_ADSENSE_CLIENT` | ID do editor, `ca-pub-…` |
 | `GOOGLE_ADSENSE_SLOT` | Bloco de anúncio padrão (só dígitos) |
 | `GOOGLE_ADSENSE_SLOT_HEADER/_BETWEEN/_SIDE/_CONTENT/_FOOTER` | Blocos por posição (opcional) |
 | `CONTACT_EMAIL` | Contato exibido na página Sobre |
-| `ANTHROPIC_API_KEY` | Liga o assistente de descoberta (servidor) |
-| `ANTHROPIC_MODEL` | Modelo usado pelo assistente (padrão `claude-sonnet-5-5`) |
 
 ## Google AdSense
 1. Crie a conta em adsense.google.com e adicione o site. A aprovação depende da avaliação do Google; este projeto não garante aprovação.
@@ -52,8 +49,6 @@ Veja `.env.example`. Todas são opcionais.
 
 Posições: horizontal abaixo do cabeçalho (≥ 768 px), entre o globo e a descoberta (celular), coluna lateral ao lado da descoberta (≥ 1280 px), abaixo do conteúdo e no rodapé. Os anúncios ficam em blocos próprios, nunca sobre o globo, o player ou botões. Sem configuração, nenhum espaço aparece.
 
-## Assistente de descoberta
-Ativo só quando `ANTHROPIC_API_KEY` existe. O fluxo tem dois passos no servidor: (1) transformar o pedido em filtros do Radio Browser; (2) escolher até 6 entre estações reais já buscadas, usando apenas os dados delas. Todo id devolvido é validado contra a lista enviada, então o assistente não cria estações. Limite simples de 12 pedidos por minuto por IP.
 
 ## Dados e limites conhecidos
 - Estações, logotipos, codec e bitrate vêm do Radio Browser. Campos ausentes não são preenchidos.

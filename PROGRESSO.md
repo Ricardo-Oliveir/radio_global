@@ -77,3 +77,31 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Destino separado de estação: rádios da cidade; senão por proximidade 10/30/75/150 km, com aviso e "X km do destino".
 - Rota entre duas cidades continua, dentro de "Ou faça uma viagem de avião".
 - Pendente da proposta: bottom sheet 3 alturas, mini-player expansível, histórico, saúde dos streams, URLs/SEO por cidade, marcador duplo (destino x rádio).
+
+## Parte 15 — Evolução completa (etapas 1–4)
+- Celular: menu de cidade com 3 alturas (alça: toque/arraste), cards de rádio padronizados (nome, local/distância, gênero, codec discreto, botão tocar), mini-player expande ao tocar no nome.
+- PC: painel lateral mostra estações da cidade antes do anúncio; anúncios com espaço reservado.
+- Histórico: "Cidades visitadas" (neste aparelho) além de recentes/favoritos.
+- Rádio fora do ar: troca sozinha por outra da lista (até 3 tentativas), tempo de espera 7 s.
+- Globo: modo leve em aparelhos fracos (menos pontos de longe, sem halo, DPR 1.5; force com ?lite); segundo marcador verde pulsando = origem do áudio quando difere do destino.
+- SEO: build gera /radios/<pais>/ e /radios/<pais>/<cidade>/ (238 países, 4.535 cidades) + sitemap; links ?c=br/cidade, ?r=<uuid da estação>, ?pais=BR abrem o contexto; o endereço acompanha a cidade/estação.
+- Pendente: testar tudo em celular real, Open-Meteo/Radio Browser no ar, enviar sitemap no Search Console.
+
+## Parte 16 — Viagem estilo mapa
+- Diálogo com campos "De" e "Para" (busca de qualquer cidade do mundo, botão "minha localização", inverter). Partida já vem com a cidade atual; sem partida vai direto ao destino.
+
+## Parte 17 — Idiomas, filtros, globo
+- Idiomas PT/EN/ES (seletor no topo; escolha salva; padrão pelo idioma do navegador). Países traduzidos via Intl. Páginas legais continuam em português.
+- Filtros: +3 religiões (espírita, judaica, budista) e +12 gêneros/estilos.
+- Celular: banner AdSense no topo (slot 'mtop', espaço reservado); carrossel de imagens só no PC.
+- Globo: sombra de dia/noite em tempo real, cidades acesas à noite, estrelas, brilho de atmosfera, pulsos de atividade (só PC, desligam no modo leve), feixe de luz na cidade escolhida. Opção "Dia e noite no globo".
+- Cidades: suporte a assets/cities-extra.json; `node scripts/importar-geonames.mjs cities15000.txt` gera o arquivo (GeoNames, CC BY 4.0).
+
+## Parte 18 — 35 mil cidades
+- assets/cities-extra.json gerado do GeoNames cities15000 (30.667 cidades novas; total 35.202). Globo mostra por níveis (base + populosas de longe; todas ao aproximar). Halo desligado com base grande.
+- Páginas de SEO continuam só para as 4.535 da base + países (limite de arquivos da Vercel: ~4,8 mil arquivos no deploy).
+- Créditos GeoNames (CC BY 4.0) e Open-Meteo na página Sobre.
+
+## Parte 19 — Repositório enxuto
+- Páginas /radios/... agora são geradas por api/radios.js (cache de CDN), sem milhares de arquivos. Deploy ~40 arquivos / 4,6 MB. Sitemap continua com ~4,8 mil URLs.
+- Para o Git: use wave-global-raiz.zip (só código-fonte; a Vercel roda `node scripts/build.mjs`). wave-global-pronto.zip = pacote já construído (sem build).

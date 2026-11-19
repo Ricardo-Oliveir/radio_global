@@ -1,9 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "public",
+  "buildCommand": "node scripts/build.mjs",
+  "outputDirectory": "dist",
   "functions": {
     "api/anuncios.js": {
-      "includeFiles": "public/anuncios/**"
+      "includeFiles": "{dist,public}/anuncios/**"
+    },
+    "api/radios.js": {
+      "includeFiles": "{public/assets,dist/assets,assets}/cities.json"
     }
   },
   "cleanUrls": false,
@@ -65,5 +69,10 @@
       ]
     }
   ],
-  "framework": null
+  "rewrites": [
+    {
+      "source": "/radios/:path*",
+      "destination": "/api/radios?p=:path*"
+    }
+  ]
 }

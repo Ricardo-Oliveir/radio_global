@@ -9,7 +9,7 @@ Para que serve: toca rádios que só transmitem em `http://` dentro do site `htt
    main = "stream-proxy.js"
    compatibility_date = "2025-01-01"
    [vars]
-   ALLOWED_ORIGINS = "https://dioglobal-phi.vercel.app"
+   ALLOWED_ORIGINS = "https://radioglobal-phi.vercel.app"
    ```
 3. `wrangler deploy` (ele mostra o endereço `https://wave-stream-proxy.SEU-USUARIO.workers.dev`).
 4. No painel da Cloudflare, ative um limite de requisições por IP (Rate Limiting) para esse Worker.

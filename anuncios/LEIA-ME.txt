@@ -1,0 +1,11 @@
+PASTA DE PROPAGANDA (carrossel do painel lateral)
+
+1. Salve aqui as imagens dos anunciantes (png, jpg, webp, gif ou avif).
+   Tamanho ideal: 640 x 200 pixels (proporção 3,2 : 1), até 200 KB cada.
+2. Publique de novo. Elas entram no carrossel sozinhas, em ordem aleatória a cada visita.
+3. (Opcional) Para a imagem abrir o site do anunciante ao clicar, crie/edite o arquivo links.txt nesta pasta,
+   uma linha por imagem, assim:
+   cafe-do-ze.png https://www.exemplo.com.br
+4. Para tirar uma propaganda, apague a imagem da pasta.
+Pasta vazia = o espaço do carrossel não aparece.
+Os links são marcados como patrocinados (rel="sponsored").
