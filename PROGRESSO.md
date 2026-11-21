@@ -105,3 +105,9 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 ## Parte 19 — Repositório enxuto
 - Páginas /radios/... agora são geradas por api/radios.js (cache de CDN), sem milhares de arquivos. Deploy ~40 arquivos / 4,6 MB. Sitemap continua com ~4,8 mil URLs.
 - Para o Git: use wave-global-raiz.zip (só código-fonte; a Vercel roda `node scripts/build.mjs`). wave-global-pronto.zip = pacote já construído (sem build).
+
+## Parte 20 — Zoom estilo mapa
+- Zoom máximo 7× → 60×. Desagrupamento por grade de tela (1 ponto por célula de 8 px; principais primeiro; todos aparecem ao aproximar). Nomes das cidades sem sobreposição quando o zoom é alto. Clique/hover usam os pontos visíveis; clique no vazio só pega cidade muito próxima conforme o zoom.
+
+## Parte 21 — Um só zoom e tema claro com estrelas
+- Removidos os botões − + da barra (ficam só os do globo, à direita). Tema claro: palco em céu azul-lavanda suave, com estrelas.

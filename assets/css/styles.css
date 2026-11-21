@@ -639,3 +639,11 @@ body.bigglobe .zoom-fab{display:flex}
 .lang-sel{height:44px;width:58px;min-width:0;padding:0 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--text);font-size:14px;cursor:pointer}
 @media (max-width:767px){.lang-sel{width:58px;padding:0 4px;font-size:13px}}
 .site-header .icon-btn,.site-header .lang-sel{flex:none}
+
+/* ===== Tema claro: palco do globo em céu suave (azul-lavanda) para as estrelas aparecerem ===== */
+:root[data-theme="light"] .stage::before{background:radial-gradient(55% 55% at 50% 48%,rgba(255,255,255,.28),transparent 72%),linear-gradient(180deg,#9fb0d8 0%,#b9c5e2 45%,#d6d9ea 100%);opacity:1}
+:root[data-theme="light"] .stage .eyebrow{color:#7a2e43}
+:root[data-theme="light"] .stage h1,:root[data-theme="light"] .stage .lead{color:#1b2238}
+:root[data-theme="light"] .globe-bar .btn,:root[data-theme="light"] .globe-bar select{background:rgba(240,243,252,.86);border-color:rgba(40,50,90,.18)}
+:root[data-theme="light"] .zoom-fab .icon-btn,:root[data-theme="light"] .bg-fabs .icon-btn{background:rgba(240,243,252,.9)}
+:root[data-theme="light"] .globe-hint{background:rgba(240,243,252,.8);color:#2a3350}

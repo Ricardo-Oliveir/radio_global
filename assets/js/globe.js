@@ -13,6 +13,7 @@ export function slerp(a, b, t){
   const s = Math.sin(w), x = Math.sin((1 - t) * w) / s, y = Math.sin(t * w) / s;
   return unvec([x * A[0] + y * B[0], x * A[1] + y * B[1], x * A[2] + y * B[2]]);
 }
+const KMAX = 60; // zoom estilo mapa: dá para chegar bem perto de uma cidade grande
 export class Globe {
   constructor(canvas, wrap, cities, cb){
     Object.assign(this, { canvas, wrap, cities, cb, ctx: canvas.getContext('2d'), lon: -30, lat: 18, k: 1, sel: null, hover: null, land: null, grat: null, W: 0, H: 0, padT: 0, padB: 0, dpr: 1, raf: 0, anim: null, visible: true, spin: false, lastTouch: 0, ptrs: new Map(), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, ready: false });
@@ -150,12 +151,13 @@ void main(){
   }
   hit(x, y, rpx){
     let best = null, bd = rpx * rpx;
+    if (this.drawn && this.drawn.length){ for (const d of this.drawn){ const e = (d.x - x) ** 2 + (d.y - y) ** 2; if (e < bd){ bd = e; best = d.c; } } return best; }
     for (const c of this.cities){ const p = this.project(c.o, c.a); if (!p.v) continue; const d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd){ bd = d; best = c; } }
     return best;
   }
   setAudioPoint(p){ this.audioPt = p; this.audioT = performance.now(); this.invalidate(); }
   setSelected(c){ this.sel = c; this.selT = performance.now(); this.invalidate(); }
-  zoom(f){ this.kT = Math.max(.85, Math.min(7, (this.kT ?? (this.anim ? this.anim.k1 : this.k)) * f)); this.invalidate(); }
+  zoom(f){ this.kT = Math.max(.85, Math.min(KMAX, (this.kT ?? (this.anim ? this.anim.k1 : this.k)) * f)); this.invalidate(); }
   flyTo(c, k = null, ms = null){
     const to = [c.o, c.a], from = [this.lon, this.lat], k0 = this.k, k1 = k ?? Math.max(1, this.kT ?? this.k);
     const km = distKm(from[0], from[1], to[0], to[1]);
@@ -190,9 +192,9 @@ void main(){
     if (useGL) this.renderGL(R, cx, cy);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
     if (!this.stars){ let sd = 7; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647; this.stars = Array.from({ length: this.lite ? 70 : 150 }, () => ({ x: rn(), y: rn(), r: .4 + rn() * 1.1, p: rn() * 6.28, s: .4 + rn() * 1.4 })); }
-    if (document.documentElement.dataset.theme !== 'light'){
-      const off = (this.lon * .0016) % 1; ctx.fillStyle = '#dfe9ff';
-      for (const st of this.stars){ const x = ((st.x - off) % 1 + 1) % 1 * W, y = st.y * H; if (Math.hypot(x - cx, y - cy) < R * 1.08) continue; ctx.globalAlpha = .25 + .6 * (this.reduce ? .6 : .5 + .5 * Math.sin(now / 900 * st.s + st.p)); ctx.beginPath(); ctx.arc(x, y, st.r, 0, 6.2832); ctx.fill(); }
+    {
+      const light = document.documentElement.dataset.theme === 'light', off = (this.lon * .0016) % 1; ctx.fillStyle = light ? '#ffffff' : '#dfe9ff';
+      for (const st of this.stars){ const x = ((st.x - off) % 1 + 1) % 1 * W, y = st.y * H; if (Math.hypot(x - cx, y - cy) < R * 1.08) continue; ctx.globalAlpha = (light ? .45 : .25) + (light ? .5 : .6) * (this.reduce ? .6 : .5 + .5 * Math.sin(now / 900 * st.s + st.p)); ctx.beginPath(); ctx.arc(x, y, st.r * (light ? 1.4 : 1), 0, 6.2832); ctx.fill(); }
       ctx.globalAlpha = 1;
     }
     const glow = ctx.createRadialGradient(cx, cy, R * .97, cx, cy, R * 1.22);
@@ -217,16 +219,25 @@ void main(){
     const shade = ctx.createRadialGradient(cx - R * .25, cy - R * .3, R * .4, cx, cy, R);
     shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, this.tex ? 'rgba(2,8,30,.28)' : 'rgba(2,8,30,.55)'); if (!useGL){ ctx.fillStyle = shade; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
     ctx.restore();
-    const r = Math.max(1.3, Math.min(3, R * .0058)); ctx.beginPath();
-    const stp = this.lite ? (this.k < 1.8 ? 3 : this.k < 3 ? 2 : 1) : 1, cs = this.cities, sn = this.sun(), sCl = Math.cos(sn.lat), sSl = Math.sin(sn.lat), nOn = this.nightOn;
-    const warm = new Path2D(), cold = new Path2D();
-    const lim = cs.length > 9000 ? (this.k < 1.5 ? 9000 : this.k < 2.6 ? 17000 : cs.length) : cs.length, nl = Math.min(lim, cs.length);
-    for (let i = 0; i < nl; i += stp){ const c = cs[i], p = this.project(c.o, c.a); if (!p.v) continue;
+    const r = Math.max(1.3, Math.min(3.6, R * .0058)); ctx.beginPath();
+    const stp = this.lite ? (this.k < 1.8 ? 2 : 1) : 1, cs = this.cities, sn = this.sun(), sCl = Math.cos(sn.lat), sSl = Math.sin(sn.lat), nOn = this.nightOn;
+    const warm = new Path2D(), cold = new Path2D(), cell = this.lite ? 11 : 8, occ = new Set(), drawn = []; // 1 ponto por célula da tela: perto do zoom máximo todos aparecem, de longe só os principais
+    for (let i = 0; i < cs.length; i += stp){ const c = cs[i], p = this.project(c.o, c.a); if (!p.v) continue;
+      if (p.x < -20 || p.y < -20 || p.x > W + 20 || p.y > H + 20) continue;
+      const key = ((p.x / cell) | 0) * 4096 + ((p.y / cell) | 0); if (occ.has(key)) continue; occ.add(key); drawn.push({ c, x: p.x, y: p.y });
       let night = false; if (nOn){ if (c._ca === undefined){ c._ca = Math.cos(c.a * rad); c._sa = Math.sin(c.a * rad); } night = c._ca * sCl * Math.cos((c.o * rad) - sn.lon) + c._sa * sSl < -.04; }
       (night ? warm : cold).moveTo(p.x + r, p.y); (night ? warm : cold).arc(p.x, p.y, night ? r * 1.15 : r, 0, 6.2832); }
+    this.drawn = drawn;
     ctx.fillStyle = 'rgba(190,220,255,.9)'; ctx.fill(cold); ctx.fillStyle = 'rgba(255,214,140,.98)'; ctx.fill(warm);
     if (nOn && R > 90){ ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,70,.16)'; ctx.shadowColor = 'rgba(255,170,60,.9)'; ctx.shadowBlur = 6; ctx.fill(warm); ctx.restore(); }
     if (R > 110 && !this.lite && cs.length < 9000){ ctx.beginPath(); for (const c of cs){ const p = this.project(c.o, c.a); if (p.v){ ctx.moveTo(p.x + r * 2.6, p.y); ctx.arc(p.x, p.y, r * 2.6, 0, 6.2832); } } ctx.fillStyle = 'rgba(120,180,255,.13)'; ctx.fill(); }
+    if (R > 330){ // nomes das cidades (estilo mapa), sem sobreposição
+      const light = document.documentElement.dataset.theme === 'light', boxes = []; ctx.font = '600 11.5px Inter, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 3.2;
+      ctx.strokeStyle = light ? 'rgba(255,255,255,.85)' : 'rgba(6,10,24,.85)'; ctx.fillStyle = light ? '#14161c' : '#eaf2ff';
+      for (let i = 0, n = 0; i < drawn.length && i < 700 && n < 90; i++){ const d = drawn[i]; if (Math.hypot(d.x - cx, d.y - cy) > R * .985) continue; const w = ctx.measureText(d.c.n).width, bx = d.x + r + 4, by = d.y - 8;
+        if (bx + w > W || by < 0 || by > H) continue; let hit = false; for (const b of boxes){ if (bx < b[2] && bx + w > b[0] && by < b[3] && by + 16 > b[1]){ hit = true; break; } } if (hit) continue;
+        boxes.push([bx - 2, by, bx + w + 2, by + 16]); ctx.strokeText(d.c.n, bx, d.y); ctx.fillText(d.c.n, bx, d.y); n++; }
+    }
     if (this.ambient && !this.reduce && R > 90){ // pulsos de atividade: cidades visíveis piscam de leve (só PC, desliga no modo leve)
       if (!this.pings) this.pings = [];
       if (now - (this.pingT || 0) > 700 && this.pings.length < 7){ this.pingT = now; for (let n = 0; n < 12; n++){ const c = cs[(Math.random() * cs.length) | 0], p = this.project(c.o, c.a); if (p.v){ this.pings.push({ c, t: now }); break; } } }
@@ -277,7 +288,7 @@ void main(){
       if (!p){ if (e.pointerType === 'mouse'){ const c = this.hit(e.clientX - box.left, e.clientY - box.top, 12); if (c !== this.hover){ this.hover = c; this.cb.onHover && this.cb.onHover(c); this.invalidate(); cv.style.cursor = c ? 'pointer' : 'grab'; } } return; }
       const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (Math.hypot(p.x - p.sx, p.y - p.sy) > 6) p.moved = true;
-      if (this.ptrs.size === 2 && this.pinch){ this.k = this.kT = Math.max(.85, Math.min(7, this.pinch.k * this.pd() / this.pinch.d)); this.kT = null; this.invalidate(); return; }
+      if (this.ptrs.size === 2 && this.pinch){ this.k = this.kT = Math.max(.85, Math.min(KMAX, this.pinch.k * this.pd() / this.pinch.d)); this.kT = null; this.invalidate(); return; }
       if (p.moved){
         this.lon -= dx / this.R * (180 / Math.PI) / Math.max(.35, Math.cos(this.lat * rad)); this.lat = Math.max(-82, Math.min(82, this.lat + dy / this.R * (180 / Math.PI)));
         this.invalidate();
@@ -288,7 +299,7 @@ void main(){
       if (!p || p.moved || e.type === 'pointercancel') return;
       const box = cv.getBoundingClientRect(), x = e.clientX - box.left, y = e.clientY - box.top;
       let c = this.hit(x, y, e.pointerType === 'mouse' ? 13 : 24);
-      if (!c){ const g = this.inverse(x, y); if (g) c = this.nearest(g.lon, g.lat, 900); }
+      if (!c){ const g = this.inverse(x, y); if (g) c = this.nearest(g.lon, g.lat, Math.max(12, 900 / Math.pow(this.k, 1.7))); }
       if (c) this.cb.onSelect(c); else this.cb.onMiss && this.cb.onMiss();
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
