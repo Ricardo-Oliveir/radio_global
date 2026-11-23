@@ -111,3 +111,15 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 
 ## Parte 21 — Um só zoom e tema claro com estrelas
 - Removidos os botões − + da barra (ficam só os do globo, à direita). Tema claro: palco em céu azul-lavanda suave, com estrelas.
+
+## Parte 22 — Globo mais realista e fundo claro sem branco
+- Shader do globo: saturação/contraste ajustados, brilho especular no oceano (máscara pela cor da textura), nuvens procedurais (fbm, deriva lenta; desligadas no modo lite), atmosfera Fresnel mais marcada.
+- Textura: carrega a rápida primeiro e troca em segundo plano por versão de maior resolução (NASA 5400x2700 ou three.js 2048), até 4096 px na GPU. Se falhar, mantém a atual.
+- Tema claro: fundo do palco agora azul-crepúsculo suave (sem o halo branco); brilho do globo mais discreto; textos do palco em tom claro.
+- Não testável no sandbox (sem rede): textura real. Testar em aparelho real.
+
+## Parte 23 — Mapa em blocos (tiles) no zoom alto
+- Quando a imagem única não tem mais resolução (2πR > largura da textura ×1,15), o globo cola um mosaico de blocos 8×8 (4×4 no modo lite) sobre a textura, direto no shader (projeção Mercator), com borda suave. Recarrega ao parar de mover.
+- Padrão: NASA GIBS Blue Marble relevo+batimetria, nível 8 (~600 m/pixel, domínio público, sem chave). Crédito no Sobre.
+- Outro provedor (mais detalhe, ex. MapTiler satélite): variáveis TILE_URL (com {z}/{x}/{y}) e TILE_MAXZ no Vercel. Chaves de provedor ficam só nas variáveis, restritas ao domínio.
+- Não testável no sandbox com tiles reais (sem rede): validado com blocos sintéticos numerados (alinhamento correto).

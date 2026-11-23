@@ -13,6 +13,7 @@ const client = (env.GOOGLE_ADSENSE_CLIENT || cfg.adsClient || '').trim(), slot =
 const streamProxy = (/^https:\/\/[^\s"'<>]+$/.test((env.STREAM_PROXY_URL || cfg.streamProxy || '').trim()) ? (env.STREAM_PROXY_URL || cfg.streamProxy).trim() : '');
 const slots = Object.fromEntries(['header', 'between', 'side', 'content', 'footer', 'loc', 'loc2', 'mtop', 'locResp'].map(k => [k, env['GOOGLE_ADSENSE_SLOT_' + k.toUpperCase()] || (cfg.adsSlots || {})[k]]));
 for (const k of Object.keys(slots)) if (!/^\d+$/.test(slots[k] || '')) delete slots[k];
+const tileUrl = /^https:\/\/[^\s"'<>]+\{z\}[^\s"'<>]*$/.test((env.TILE_URL || '').trim()) ? env.TILE_URL.trim() : '', tileMaxZ = Math.max(3, Math.min(20, +env.TILE_MAXZ || 8));
 const contact = (env.CONTACT_EMAIL || '').trim();
 const okClient = /^ca-pub-\d{8,20}$/.test(client);
 // Bloco "Desenvolvido por": só aparece se houver nome ou links https válidos.
@@ -46,7 +47,7 @@ for (const f of walk(OUT)) if (['.html', '.webmanifest'].includes(extname(f))){
 const hash = createHash('sha1'); for (const f of walk(OUT).sort()) if (!/config\.js$|version\.json$/.test(f)) hash.update(f).update(readFileSync(f));
 const version = hash.digest('hex').slice(0, 10);
 writeFileSync(join(OUT, 'version.json'), JSON.stringify({ v: version }) + '\n');
-writeFileSync(join(OUT, 'assets/js/config.js'), `// Gerado por scripts/build.mjs\nexport default ${JSON.stringify({ version, adsClient: okClient ? client : '', adsSlot: /^\d+$/.test(slot) ? slot : '', adsSlots: slots, contactEmail: contact, streamProxy: streamProxy })};\n`);
+writeFileSync(join(OUT, 'assets/js/config.js'), `// Gerado por scripts/build.mjs\nexport default ${JSON.stringify({ tileUrl, tileMaxZ, version, adsClient: okClient ? client : '', adsSlot: /^\d+$/.test(slot) ? slot : '', adsSlots: slots, contactEmail: contact, streamProxy: streamProxy })};\n`);
 writeFileSync(join(OUT, 'ads.txt'), okClient ? `google.com, ${client.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n` : '# Defina GOOGLE_ADSENSE_CLIENT para gerar a linha do AdSense\n');
 writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
