@@ -252,6 +252,15 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     ok('tema claro: corpo e player ficam claros', c.theme === 'light' && c.body > 200 && c.player > 200 && c.hint > 200, c);
     ok('tema claro: sem erros no console', !errs.length, errs); await ctx.close();
   }
+  { // divisas (países e estados) carregadas dos dados Natural Earth e desenhadas sem erro
+    const { ctx, page, errs } = await newPage(browser, 1280, A.url, { 'wg.consent': '"no"' });
+    const gj = JSON.stringify({ features: [{ geometry: { type: 'LineString', coordinates: [[-50, -10], [-40, -10], [-40, -20]] } }, { geometry: { type: 'MultiLineString', coordinates: [[[0, 0], [10, 0]], [[0, 5], [10, 5]]] } }] });
+    await page.route(/natural-earth-vector/, r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: gj }));
+    await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.globe && window.__wg.globe.ready, null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { const g = window.__wg.globe; g.lon = -45; g.lat = -12; g.k = 3; g.invalidate(); }); await page.waitForTimeout(1200);
+    const d = await page.evaluate(() => { const b = window.__wg.globe.borders.d; return { p: b.paises && b.paises.length, e: b.estados && b.estados.length }; });
+    ok('divisas: países e estados carregam (3 linhas) e o globo segue sem erros', d.p === 3 && d.e === 3 && !errs.length, { d, errs }); await ctx.close();
+  }
   { // carrossel de propaganda (imagens da pasta anuncios) e gaveta da cidade no celular
     build('dist-car'); const fs = require('fs'); const png = PNG;
     for (const n of ['a.png', 'b.png', 'c.png']) fs.writeFileSync(`dist-car/anuncios/${n}`, png);
@@ -261,7 +270,6 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
       const { ctx, page, errs } = await newPage(browser, w, C.url, { 'wg.consent': '"no"' });
       await page.goto(C.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
       await page.evaluate(() => window.__wg.selectCity(window.__wg.S.cities.find(c => c.n === 'Lima'), { play: false })); await page.waitForTimeout(800);
-      if (w < 768) { await page.click('#sheetBtn'); await page.waitForTimeout(300); await page.evaluate(() => document.getElementById('adCar').scrollIntoView({ block: 'center', behavior: 'instant' })); }
       const s = await page.evaluate(() => { const r = document.getElementById('adCar'), sl = [...r.querySelectorAll('.car-slide')]; return { shown: r.getClientRects().length > 0, n: sl.length, on: sl.filter(x => x.classList.contains('on')).length, dots: r.querySelectorAll('.car-dot').length, rel: [...r.querySelectorAll('a')].map(a => a.rel + '|' + a.getAttribute('href')), label: !!r.querySelector('.ad-label') }; });
       if (w >= 768) ok(`${w}px · carrossel: mostra só imagens válidas (3 de 4), uma ativa e rótulo "Publicidade"`, s.shown && s.n === 3 && s.on === 1 && s.dots === 3 && s.label, s);
       if (w >= 768) ok(`${w}px · carrossel: só links https, marcados como patrocinados`, s.rel.length === 1 && /sponsored/.test(s.rel[0]) && /https:\/\/exemplo/.test(s.rel[0]), s.rel);
@@ -270,16 +278,14 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
       const after = await page.evaluate(() => [...document.querySelectorAll('.car-slide')].findIndex(x => x.classList.contains('on')));
       if (w >= 768) ok(`${w}px · carrossel: bolinhas trocam a propaganda`, after === 1 && before !== 1 || after === 1, { before, after });
       ok(`${w}px · carrossel: sem erros no console`, !errs.length, errs);
-      if (w < 768) {
-        await page.click('#sheetBtn'); await page.waitForTimeout(300);
-        const g = await page.evaluate(() => { const l = document.getElementById('loc'), r = l.getBoundingClientRect(), pl = document.getElementById('player').getBoundingClientRect(), gl = window.__wg.globe, wr = document.getElementById('globeWrap').getBoundingClientRect();
-          return { pos: getComputedStyle(l).position, h: Math.round(r.height), bottomOk: Math.abs(r.bottom - pl.top) < 2, open: l.classList.contains('open'), clock: getComputedStyle(document.getElementById('clock')).display, st: getComputedStyle(document.getElementById('locStations')).display, hs: document.documentElement.scrollWidth - innerWidth, globeBottom: Math.round(wr.top + gl.CY + gl.R), sheetTop: Math.round(r.top) }; });
-        ok('390px · gaveta da cidade: fixa acima do player e compacta quando fechada', g.pos === 'fixed' && !g.open && g.h < 110 && g.bottomOk && g.clock === 'none' && g.hs <= 0, g);
-        ok('390px · gaveta da cidade: globo não fica atrás da gaveta fechada', g.globeBottom <= g.sheetTop + 2, g);
-        await page.click('#sheetBtn'); await page.waitForTimeout(300);
-        const o = await page.evaluate(() => { const l = document.getElementById('loc'), r = l.getBoundingClientRect(); return { open: l.classList.contains('open'), h: Math.round(r.height), vh: innerHeight, st: getComputedStyle(document.getElementById('locStations')).display, ex: document.getElementById('sheetBtn').getAttribute('aria-expanded') }; });
-        ok('390px · gaveta da cidade: abre com a lista e não passa de 70% da tela', o.open && o.st !== 'none' && o.h <= o.vh * .71 && o.ex === 'true', o);
-        await page.keyboard.press('Escape'); await page.waitForTimeout(200); const cl = await page.evaluate(() => !document.getElementById('loc').classList.contains('open')); ok('390px · gaveta da cidade: Esc fecha', cl, cl);
+      { // pop-up da cidade (celular e PC): fechado ao selecionar sem tocar; botão Estações abre; fechar, fundo e Esc fecham
+        const st = () => page.evaluate(() => { const l = document.getElementById('loc'), r = l.getBoundingClientRect(), b = document.getElementById('popBtn'); return { open: l.classList.contains('open'), vis: l.getClientRects().length > 0, pos: getComputedStyle(l).position, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), vw: innerWidth, vh: innerHeight, hs: document.documentElement.scrollWidth - innerWidth, st: getComputedStyle(document.getElementById('locStations')).display, btn: b.getClientRects().length > 0 }; });
+        const c0 = await st(); ok(`${w}px · pop-up da cidade: começa fechado e o botão Estações aparece`, !c0.open && !c0.vis && c0.btn && c0.hs <= 0, c0);
+        await page.click('#popBtn'); await page.waitForTimeout(250); const c1 = await st();
+        ok(`${w}px · pop-up da cidade: abre centralizado, dentro da tela, com a lista de estações`, c1.open && c1.pos === 'fixed' && c1.l >= 0 && c1.r <= c1.vw && c1.t >= 0 && c1.b <= c1.vh && c1.st !== 'none', c1);
+        await page.click('#sheetBtn'); await page.waitForTimeout(200); const c2 = await st(); ok(`${w}px · pop-up da cidade: botão Fechar fecha`, !c2.open && !c2.vis, c2);
+        await page.click('#popBtn'); await page.waitForTimeout(150); await page.mouse.click(8, 450); await page.waitForTimeout(200); const c3 = await st(); ok(`${w}px · pop-up da cidade: clicar fora fecha`, !c3.open, c3);
+        await page.click('#popBtn'); await page.waitForTimeout(150); await page.keyboard.press('Escape'); await page.waitForTimeout(200); const c4 = await st(); ok(`${w}px · pop-up da cidade: Esc fecha e o botão volta a abrir`, !c4.open && c4.btn, c4);
       }
       await ctx.close();
     }
@@ -296,10 +302,13 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
   }
   for (const w of [390, 1280]) { // tema claro/escuro e duas janelas de anúncio no painel lateral
     const { ctx, page, errs } = await newPage(browser, w, A.url);
+    if (w >= 768) { await page.route('**/anuncios/lista.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ itens: [{ src: '/anuncios/a.png', link: '' }, { src: '/anuncios/b.png', link: '' }] }) })); await page.route('**/anuncios/*.png', r => r.fulfill({ contentType: 'image/png', body: PNG })); }
     await page.goto(A.url + '/?teste&adpreview'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => { window.__wg.selectCity(window.__wg.S.cities.find(c => c.n === 'Lima')); }); await page.waitForTimeout(1500);
-    const d = await page.evaluate(() => ({ other: !!document.getElementById('otherBtn'), ads: [...document.querySelectorAll('#loc [data-ad^="loc"]')].map(e => e.dataset.ad), car: !!document.querySelector('#loc #adCar'), th: document.documentElement.dataset.theme, bg: getComputedStyle(document.body).backgroundColor }));
+    const d = await page.evaluate(() => ({ other: !!document.getElementById('otherBtn'), ads: [...document.querySelectorAll('#adPanel [data-ad^="loc"]')].map(e => e.dataset.ad), car: !!document.querySelector('#adPanel #adCar'), th: document.documentElement.dataset.theme, bg: getComputedStyle(document.body).backgroundColor }));
     ok(`${w}px · painel lateral: sem "Outra estação"; AdSense na primeira janela e carrossel na segunda`, !d.other && d.ads.length === 1 && d.ads[0] === 'loc' && d.car, d);
+    if (w >= 768) { const on = () => page.evaluate(() => [...document.querySelectorAll('#adPanel .pg')].filter(p => p.classList.contains('on') && !p.hidden).map(p => p.id || p.dataset.ad)); await page.waitForFunction(() => [...document.querySelectorAll('#adPanel .pg')].some(p => p.classList.contains('on') && !p.hidden), null, { timeout: 8000 }).catch(() => {}); const a = await on(); await page.waitForTimeout(31000); const b2 = await on();
+      ok('1280px · painel de publicidade: troca de página sozinho a cada 30 s (só visibilidade, sem recarregar o anúncio)', a.length === 1 && b2.length === 1 && a[0] !== b2[0], { a, b2 }); }
     await page.click('#themeBtn'); await page.waitForTimeout(300);
     const l = await page.evaluate(() => ({ th: document.documentElement.dataset.theme, bg: getComputedStyle(document.body).backgroundColor, stage: getComputedStyle(document.querySelector('.stage')).getPropertyValue('--bg').trim(), pressed: document.getElementById('themeBtn').getAttribute('aria-pressed'), saved: localStorage.getItem('wg.theme'), meta: document.querySelector('meta[name=theme-color]').content, hs: document.documentElement.scrollWidth - innerWidth }));
     ok(`${w}px · tema claro: muda o fundo, salva a escolha e vale para o site todo`, l.th === 'light' && l.bg !== d.bg && l.stage === '#ece8e0' && l.pressed === 'true' && l.saved === '"light"' && l.meta === '#ece8e0' && l.hs <= 0, l);

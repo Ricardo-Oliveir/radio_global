@@ -123,3 +123,14 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Padrão: NASA GIBS Blue Marble relevo+batimetria, nível 8 (~600 m/pixel, domínio público, sem chave). Crédito no Sobre.
 - Outro provedor (mais detalhe, ex. MapTiler satélite): variáveis TILE_URL (com {z}/{x}/{y}) e TILE_MAXZ no Vercel. Chaves de provedor ficam só nas variáveis, restritas ao domínio.
 - Não testável no sandbox com tiles reais (sem rede): validado com blocos sintéticos numerados (alinhamento correto).
+
+## Parte 24 — Painel só de publicidade + cidade em pop-up
+- Coluna lateral do PC agora só tem publicidade (#adPanel): duas "páginas" (AdSense e carrossel de imagens) que se alternam a cada 30 s apenas trocando visibilidade (sem recarregar nem atualizar o anúncio: política do AdSense proíbe atualização forçada). Se só uma existir, fica fixa.
+- Informações da cidade (relógio, estações) viraram pop-up no PC e no celular (#loc): abre ao tocar numa cidade do globo; fecha com Fechar, clique fora ou Esc; botão "Estações" na barra do globo reabre. Sem gaveta inferior no celular (topo do celular continua com o banner AdSense).
+- Testes: 289 ok.
+
+## Parte 25 — Divisas no globo (países e estados, só linhas)
+- assets/js/borders.js: desenha por cima do globo fronteiras de países (a partir de ~1×) e limites de estados/províncias (a partir de ~1,5×, mais visíveis com o zoom). Sem nomes. Projeção sem trigonometria por ponto (vetores unitários), com corte de linhas fora da vista.
+- Dados Natural Earth (domínio público) carregados sob demanda: 50m (países e estados); a 10m de estados (completa, arquivo grande) só em zoom ≥ 8, fora do modo lite e sem "economia de dados".
+- Ordem de busca: /assets/geo/<nome>.geojson (se você colocar o arquivo no projeto) e depois CDN jsDelivr. Se falhar, o globo segue sem as linhas.
+- Não testável no sandbox com os dados reais (sem rede): validado com linhas de teste. Testes: 290 ok.

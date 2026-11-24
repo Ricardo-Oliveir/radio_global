@@ -21,7 +21,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optNight', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn', 'cityFilters', 'tripFromQ', 'tripToQ', 'tripSwap', 'tripMe', 'tripRes', 'tripSt', 'visList', 'visBox'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optNight', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'popBg', 'popBtn', 'adPanel', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn', 'cityFilters', 'tripFromQ', 'tripToQ', 'tripSwap', 'tripMe', 'tripRes', 'tripSt', 'visList', 'visBox'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -218,18 +218,19 @@ async function replay(entry){
 
 /* ---------- cidade, relógio e lista local ---------- */
 // Celular: o painel da cidade vira uma gaveta compacta acima do player; toque para abrir a lista de estações.
-function measureSheet(){ const r = document.documentElement.style; if (innerWidth >= 768 || !document.body.classList.contains('has-city')) return r.setProperty('--sheet-h', '0px'); if (!E.loc.classList.contains('open')) r.setProperty('--sheet-h', Math.ceil(E.loc.getBoundingClientRect().height) + 'px'); }
-new ResizeObserver(measureSheet).observe(E.loc); addEventListener('resize', measureSheet);
-const SNAPS = ['peek', 'mid', 'full'];
-function setSnap(n){ n = Math.max(0, Math.min(2, n)); S.snap = n; E.loc.dataset.snap = SNAPS[n]; E.loc.classList.toggle('open', n > 0); E.sheetBtn.setAttribute('aria-expanded', n > 0); requestAnimationFrame(measureSheet); }
+// Informações da cidade e lista de estações viram um pop-up: abre ao tocar numa cidade, fecha e volta pelo botão "Estações".
+function measureSheet(){ document.documentElement.style.setProperty('--sheet-h', '0px'); }
+function setSnap(n){ const on = n > 0; S.snap = on ? 1 : 0; E.loc.dataset.snap = on ? 'mid' : 'peek'; E.loc.classList.toggle('open', on); E.popBg.hidden = !on; document.body.classList.toggle('pop-open', on); E.sheetBtn.setAttribute('aria-expanded', on); E.popBtn.setAttribute('aria-expanded', on); if (on) E.sheetBtn.focus({ preventScroll: true }); }
 function setSheet(on){ setSnap(on ? 1 : 0); }
-{ const grip = h('button', { class: 'sheet-grip', type: 'button', 'aria-label': 'Ajustar altura da lista de rádios' }); E.loc.prepend(grip); let y0 = null;
-  grip.addEventListener('pointerdown', e => { y0 = e.clientY; grip.setPointerCapture(e.pointerId); });
-  grip.addEventListener('pointerup', e => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null; const c = S.snap || 0; setSnap(dy < -24 ? c + 1 : dy > 24 ? c - 1 : (c + 1) % 3); });
-  grip.addEventListener('pointercancel', () => { y0 = null; }); }
 E.loc.dataset.snap = 'peek';
-E.sheetBtn.addEventListener('click', () => setSnap((S.snap || 0) > 0 ? 0 : 1));
+E.sheetBtn.addEventListener('click', () => setSnap(0)); E.popBg.addEventListener('click', () => setSnap(0)); E.popBtn.addEventListener('click', () => setSnap(1));
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && E.loc.classList.contains('open')) setSheet(false); });
+// Painel de publicidade: duas "páginas" (AdSense e carrossel de imagens) que se alternam a cada 30 s só trocando a visibilidade, sem recarregar nem atualizar o anúncio (a política do AdSense proíbe atualização forçada).
+{ const PG = 30000; let t = 0;
+  const pages = () => [...E.adPanel.querySelectorAll('.pg')].filter(p => !p.hidden);
+  const show = p => E.adPanel.querySelectorAll('.pg').forEach(x => x.classList.toggle('on', x === p));
+  const tick = () => { const ps = pages(); if (!ps.length || document.hidden) return; const k = ps.findIndex(p => p.classList.contains('on')); if (ps.length > 1) show(ps[(k + 1) % ps.length]); else show(ps[0]); };
+  setInterval(tick, PG); new MutationObserver(() => { const ps = pages(); if (ps.length && !ps.some(p => p.classList.contains('on'))) show(ps[0]); }).observe(E.adPanel, { attributes: true, subtree: true, attributeFilter: ['hidden'] }); }
 let clockT = 0;
 function paintClock(){
   const c = S.city; if (!c) return;
@@ -240,9 +241,9 @@ function paintClock(){
 setInterval(paintClock, 1000);
 const noteFor = (c, i) => !c.dest ? NOTES[i.mode] : i.mode === 'city' ? `Estações de ${c.n}.` : i.mode === 'near' ? `Nenhuma estação cadastrada exatamente em ${c.n}. Encontramos rádios a partir de ${i.min} km do destino (busca até ${i.radius} km).` : i.mode === 'country' ? `Nenhuma estação perto de ${c.n}. Mostrando as mais ouvidas do país.` : NOTES.none;
 const NOTES = { city: 'Estações com o nome desta cidade.', near: 'Estações cadastradas até 80 km daqui.', country: 'Sem estação cadastrada na cidade. Mostrando as mais ouvidas do país.', none: 'Nenhuma estação cadastrada para este local.' };
-async function selectCity(c, { play = true, fly = true, keepList = false } = {}){
+async function selectCity(c, { play = true, fly = true, keepList = false, pop = false } = {}){
   if (fly && trip && trip.active) trip.pause();
-  S.city = c; const tok = ++S.sel; S.seen.add(c); document.body.classList.add('has-city'); if (fly) setSheet(false);
+  S.city = c; const tok = ++S.sel; S.seen.add(c); document.body.classList.add('has-city'); E.popBtn.hidden = false; if (pop) setSheet(true); else if (fly) setSheet(false);
   syncUrl(c); globe && (globe.setSelected(c), globe.setAudioPoint(null), fly && globe.flyTo(c));
   E.locFlag.hidden = false; E.locFlag.src = flagUrl(c.c); E.locCity.textContent = c.n; E.locCountry.textContent = c.p;
   E.clock.hidden = false; paintClock(); store.set('city', c.n + '|' + c.c); pushVisited(c);
@@ -251,7 +252,7 @@ async function selectCity(c, { play = true, fly = true, keepList = false } = {})
   const info = c.dest ? await radio.forPlace(c) : await radio.forCity(c); if (tok !== S.sel) return;
   if (!keepList){
     S.cityAll = info.cands; S.cityF = '';
-    E.sheetTxt.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = noteFor(c, info); paintCityList();
+    E.popBtn.lastElementChild.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = noteFor(c, info); paintCityList();
   }
   E.globeHint.textContent = `${c.n}, ${c.p}.`;
   if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return; } S.navMove = false; await tryQueue(info.cands, 0); }
@@ -279,7 +280,7 @@ let globe = null;
 function initGlobe(){
   globe = new Globe(E.globe, E.globeWrap, S.cities, {
     onZoomed: z => { E.showAll.hidden = !z; },
-    onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c); },
+    onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c, { pop: true }); },
     onHover: c => { if (c) E.globeHint.textContent = `${c.n}, ${c.p}. Toque para ouvir.`; else if (S.city) E.globeHint.textContent = `${S.city.n}, ${S.city.p}.`; },
     onMiss: () => { E.globeHint.textContent = 'Nenhuma cidade perto desse ponto. Gire o globo ou aproxime.'; },
     onFirstDraw: () => E.globePoster.classList.add('off')
@@ -653,7 +654,7 @@ async function boot(){
   const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); renderTab(); } }, { rootMargin: '400px' });
   io.observe(document.getElementById('descobrir'));
   const idle = window.requestIdleCallback || (f => setTimeout(f, 1200));
-  idle(() => { mountAds(); E.loc.classList.toggle('has-ad', !!document.querySelector('[data-ad^="loc"][data-mounted]')); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
+  idle(() => { mountAds(); if (!store.get('consent') && (adsEnabled() || new URLSearchParams(location.search).has('adpreview'))) consentOpen(); }, { timeout: 4000 });
   if (new URLSearchParams(location.search).has('teste')) window.__wg = { S, player, globe, trip, goNearMe, selectCity, playStation, randomCity, renderTab, radio };
 }
 boot().catch(e => { E.gridStatus.textContent = 'Não foi possível carregar os dados do site. Recarregue a página.'; console.error(e); });

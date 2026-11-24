@@ -1,3 +1,4 @@
+import { Borders } from './borders.js';
 // Globo ortográfico em canvas. Desenha só quando algo muda (poupa bateria). Mapa carregado depois do conteúdo essencial.
 import { loadScript, rad, distKm } from './util.js';
 import config from './config.js';
@@ -21,6 +22,7 @@ export function slerp(a, b, t){
 const KMAX = 60; // zoom estilo mapa: dá para chegar bem perto de uma cidade grande
 export class Globe {
   constructor(canvas, wrap, cities, cb){
+    this.borders = new Borders(() => this.invalidate());
     Object.assign(this, { canvas, wrap, cities, cb, ctx: canvas.getContext('2d'), lon: -30, lat: 18, k: 1, sel: null, hover: null, land: null, grat: null, W: 0, H: 0, padT: 0, padB: 0, dpr: 1, raf: 0, anim: null, visible: true, spin: false, lastTouch: 0, ptrs: new Map(), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, ready: false });
     new ResizeObserver(() => this.resize()).observe(wrap);
     new IntersectionObserver(e => { this.visible = e[0].isIntersecting; if (this.visible) this.draw(); }, { threshold: 0 }).observe(wrap);
@@ -278,6 +280,7 @@ void main(){
     }
     const shade = ctx.createRadialGradient(cx - R * .25, cy - R * .3, R * .4, cx, cy, R);
     shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, this.tex ? 'rgba(2,8,30,.28)' : 'rgba(2,8,30,.55)'); if (!useGL){ ctx.fillStyle = shade; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
+    if (this.tex || useGL) this.borders.draw(ctx, this, this.lite);
     ctx.restore();
     const r = Math.max(1.3, Math.min(3.6, R * .0058)); ctx.beginPath();
     const stp = this.lite ? (this.k < 1.8 ? 2 : 1) : 1, cs = this.cities, sn = this.sun(), sCl = Math.cos(sn.lat), sSl = Math.sin(sn.lat), nOn = this.nightOn;

@@ -647,3 +647,41 @@ body.bigglobe .zoom-fab{display:flex}
 :root[data-theme="light"] .globe-bar .btn,:root[data-theme="light"] .globe-bar select{background:rgba(240,243,252,.86);border-color:rgba(40,50,90,.18)}
 :root[data-theme="light"] .zoom-fab .icon-btn,:root[data-theme="light"] .bg-fabs .icon-btn{background:rgba(240,243,252,.9)}
 :root[data-theme="light"] .globe-hint{background:rgba(240,243,252,.8);color:#2a3350}
+
+/* ===== Pop-up da cidade + painel só de publicidade (troca sozinha a cada 30 s) ===== */
+.loc-card{display:none!important}
+.pop-bg{position:fixed;inset:0;z-index:88;background:rgba(6,8,16,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.pop-bg[hidden]{display:none}
+.loc-card.open{display:flex!important;flex-direction:column;position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 24px))!important;max-height:min(84dvh,680px)!important;overflow:auto;z-index:90;margin:0!important;padding:16px!important;gap:14px;border-radius:16px!important;border:1px solid var(--line)!important;background:var(--surface)!important;box-shadow:0 24px 60px rgba(0,0,0,.5);transition:none}
+.loc-card .sheet-grip,.loc-card::before{display:none!important}
+.loc-card .sheet-btn{display:inline-flex!important;align-items:center;min-height:40px;padding:0 14px;margin-left:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:600}
+.loc-card .sheet-btn::after{display:none}
+.loc-card.open > *{display:revert}
+.loc-card.open .loc-stations[hidden],.loc-card.open .loc-similar[hidden],.loc-card.open .clock[hidden],.loc-card.open .city-filters[hidden]{display:none!important}
+.loc-card.open #stList,.loc-card.open #locNote,.loc-card.open #locStations h3{display:revert!important}
+.loc-card.open #stList{max-height:none;overflow:visible}
+.loc-card.open .loc-time{display:inline!important}
+#popBtn[hidden]{display:none}
+body.pop-open{overflow:hidden}
+.ad-panel{display:none}
+@media (min-width:768px){
+  .ad-panel{display:block;grid-area:loc;position:relative;align-self:stretch;min-height:300px;margin:var(--gut) var(--gut) var(--gut) 0;border-radius:12px;overflow:hidden;background:rgba(16,16,17,.55);border:1px solid var(--line)}
+  .ad-panel .pg{position:absolute;inset:0;margin:0;max-width:none;width:auto;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:opacity .6s ease,visibility .6s;opacity:0;visibility:hidden;pointer-events:none}
+  .ad-panel .pg[hidden]{display:none}
+  .ad-panel .pg.on{opacity:1;visibility:visible;pointer-events:auto}
+  .ad-panel .pg .ad-inner{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;min-height:0}
+  .ad-panel #adCar .ad-inner{align-items:stretch;justify-content:flex-start}
+  .ad-panel .car{flex:1;display:flex;flex-direction:column;max-width:none;margin:0;min-height:0}
+  .ad-panel .car-view{flex:1;aspect-ratio:auto;min-height:150px}
+  .ad-panel .ad:has(ins[data-ad-status="unfilled"]){display:none}
+}
+@media (min-width:1024px){.ad-panel{min-height:0}}
+body.bigglobe .ad-panel,body.bigglobe .pop-bg,body.bigglobe #popBtn{display:none!important}
+:root[data-theme="light"] .ad-panel{background:rgba(236,231,222,.85);border-color:rgba(24,20,14,.1)}
+:root[data-theme="light"] .loc-card.open{background:#f3efe8!important}
+.loc-card.open .loc-head{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:10px}
+.loc-card.open .loc-names{flex:1 1 auto;min-width:0}
+.loc-card.open .loc-names h2{font-size:1.15rem;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc-card.open .flag{flex:none}
+.loc-card.open .loc-time{flex:none;margin-left:0}
+.loc-card.open .sheet-btn{flex:none}

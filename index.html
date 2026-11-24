@@ -123,6 +123,7 @@ __ADS_HEAD__</head>
       </div>
       <div class="globe-bar">
         <button class="btn" id="showAll" type="button" hidden><svg class="ic"><use href="#i-minus"/></svg><span>Globo inteiro</span></button>
+        <button class="btn" id="popBtn" type="button" hidden><svg class="ic"><use href="#i-pin"/></svg><span>Estações</span></button>
         <button class="btn" id="randomBtn" type="button"><svg class="ic"><use href="#i-swap"/></svg><span>Cidade aleatória</span></button>
         <button class="btn" id="nearBtn" type="button"><svg class="ic"><use href="#i-pin"/></svg><span>Perto de mim</span></button>
         <label class="select-wrap"><span class="sr-only">Ir para um país</span>
@@ -157,19 +158,18 @@ __ADS_HEAD__</head>
       <p class="hint" id="globeHint">Toque numa cidade. Arraste para girar.</p>
     </div>
 
-    <aside class="loc-card" id="loc" aria-label="Local selecionado">
+    <aside class="loc-card" id="loc" role="dialog" aria-modal="true" aria-label="Local selecionado">
       <div class="loc-head">
         <img class="flag" id="locFlag" alt="" width="28" height="21" hidden>
         <div class="loc-names"><h2 id="locCity">Nenhuma cidade escolhida</h2><p id="locCountry">Toque num ponto do globo.</p></div>
         <time class="loc-time" id="locTime"></time>
-        <button class="sheet-btn" id="sheetBtn" type="button" aria-expanded="false" aria-controls="loc"><span id="sheetTxt">Estações</span></button>
+        <button class="sheet-btn" id="sheetBtn" type="button" aria-expanded="false" aria-controls="loc"><span id="sheetTxt">Fechar</span></button>
       </div>
       <div class="clock" id="clock" hidden>
         <div class="clock-main"><time id="clockTime">--:--:--</time><span class="dn" id="clockDn"><svg class="ic"><use href="#i-sun"/></svg><span>Dia</span></span></div>
         <p class="clock-sub"><span id="clockWeek"></span> · <span id="clockDate"></span></p>
         <p class="clock-sub dim" id="clockTz"></p>
       </div>
-      <div class="ad ad-loc" data-ad="loc" data-show="desktop" hidden></div>
       <div class="loc-stations" id="locStations" hidden>
         <h3>Estações nesta região</h3>
         <p class="note" id="locNote"></p>
@@ -180,7 +180,11 @@ __ADS_HEAD__</head>
         <h3>Semelhantes à que está tocando</h3>
         <ul class="st-list" id="similarList"></ul>
       </div>
-    <div class="ad ad-car" id="adCar" hidden></div>
+    </aside>
+    <div class="pop-bg" id="popBg" hidden></div>
+    <aside class="ad-panel" id="adPanel" aria-label="Publicidade">
+      <div class="ad ad-loc pg on" data-ad="loc" data-show="desktop" hidden></div>
+      <div class="ad ad-car pg" id="adCar" hidden></div>
     </aside>
   </section>
 
