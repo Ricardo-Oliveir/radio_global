@@ -134,3 +134,9 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Dados Natural Earth (domínio público) carregados sob demanda: 50m (países e estados); a 10m de estados (completa, arquivo grande) só em zoom ≥ 8, fora do modo lite e sem "economia de dados".
 - Ordem de busca: /assets/geo/<nome>.geojson (se você colocar o arquivo no projeto) e depois CDN jsDelivr. Se falhar, o globo segue sem as linhas.
 - Não testável no sandbox com os dados reais (sem rede): validado com linhas de teste. Testes: 290 ok.
+
+## Parte 26 — Celular (<=767px) em tela cheia só com o globo
+- Mobile: globo 100vw×100dvh (sem rolagem, touch-action none, zoom só por pinça, globo maior: R=97% da meia-largura), topo só com a marca e a lupa (campo de busca em overlay; ao escolher, fecha e voa), player flutuante com nome (1 linha), play/pause e pular.
+- Escondidos no celular: textos de introdução, Viagem, Estações, Cidade aleatória, Perto de mim, país, painel/pop-up da cidade, zoom +/-, idioma, tema, menu, anúncios (AdSense não monta mais no celular), mensagens do player, seções de baixo e rodapé. Aviso de cookies continua (compacto, acima do player).
+- Pular (celular): tenta até 3 estações da cidade (4 s cada); se falhar ou acabar, vai em silêncio para outra cidade da base com estação no ar (até 6 tentativas).
+- Desktop inalterado. Testes: 256 ok (testes de layout antigo do celular removidos; novos testes do celular adicionados).

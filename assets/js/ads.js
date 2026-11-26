@@ -23,7 +23,7 @@ export function AdContainer(pos, width = 0){
   box.append(pos.startsWith('loc') ? (width >= 320 ? AdFixed(pos, 320, 100) : AdFixed(pos, 234, 60)) : (pos === 'side' || pos === 'mtop') ? AdResponsive(pos) : AdBanner(pos)); return box;
 }
 const mq = { desktop: matchMedia('(min-width:768px)'), mobile: matchMedia('(max-width:767px)'), wide: matchMedia('(min-width:1280px)') };
-const fits = rule => rule === 'all' || (mq[rule] && mq[rule].matches);
+const fits = rule => rule === 'all' || (rule !== 'mobile' && mq[rule] && mq[rule].matches); // sem anúncios no celular (interface só do globo)
 // Monta cada espaço no máximo uma vez; navegação dinâmica não duplica o script nem os blocos.
 export function mountAds(root = document){
   if (!adsEnabled() && !preview) return;

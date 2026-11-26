@@ -148,11 +148,11 @@ E.pNext.addEventListener('click', () => nextStation());
 E.pPrev.addEventListener('click', () => prevStation());
 E.pOther.addEventListener('click', () => otherStation());
 
-async function tryQueue(cands, from = 0, max = 6){
+async function tryQueue(cands, from = 0, max = 6, ms){
   for (let k = 0; k < Math.min(max, cands.length); k++){
     const i = (from + k) % cands.length, st = cands[i];
     S.station = reg(st); paintPlayer(); status(`Sintonizando ${st.name}…`);
-    const ok = await player.load(st);
+    const ok = await player.load(st, ms);
     if (S.station !== st) return false;
     if (ok){ S.qi = i; onStarted(st); return true; }
   }
@@ -202,9 +202,26 @@ async function otherStation(){
   if (!S.queue.length){ status('Escolha uma cidade para ver outras estações.', true); return; }
   S.navMove = false; await tryQueue(S.queue, S.qi + 1, S.queue.length);
 }
+// Celular: "Pular" tenta as próximas estações da cidade atual e, se falharem (ou não houver mais), vai em silêncio para uma cidade aleatória que tenha estação no ar.
+const MOB = matchMedia('(max-width:767px)');
+let skipTok = 0;
+async function skipMobile(){
+  const tok = ++skipTok, q = S.queue.slice(), cur = S.qi;
+  for (let k = 1; k < q.length && k <= 3; k++){
+    const i = (cur + k) % q.length, st = q[i]; if (S.station && st.id === S.station.id) continue;
+    S.station = reg(st); paintPlayer(); const ok = await player.load(st, 4000);
+    if (tok !== skipTok || S.station !== st) return; if (ok){ S.qi = i; onStarted(st); return; }
+  }
+  const pool = S.cities.slice(0, S.baseN || S.cities.length).filter(c => !S.city || c !== S.city);
+  for (let n = 0; n < 6 && pool.length; n++){
+    const c = pool[Math.floor(Math.random() * pool.length)]; S.seen.add(c);
+    const ok = await selectCity(c, { max: 2, ms: 4000 }); if (tok !== skipTok) return; if (ok) return;
+  }
+}
 async function nextStation(){
   player.unlock();
   if (S.ni < S.nav.length - 1){ S.ni++; return replay(S.nav[S.ni]); }
+  if (MOB.matches) return skipMobile();
   randomCity();
 }
 async function prevStation(){
@@ -241,7 +258,7 @@ function paintClock(){
 setInterval(paintClock, 1000);
 const noteFor = (c, i) => !c.dest ? NOTES[i.mode] : i.mode === 'city' ? `Estações de ${c.n}.` : i.mode === 'near' ? `Nenhuma estação cadastrada exatamente em ${c.n}. Encontramos rádios a partir de ${i.min} km do destino (busca até ${i.radius} km).` : i.mode === 'country' ? `Nenhuma estação perto de ${c.n}. Mostrando as mais ouvidas do país.` : NOTES.none;
 const NOTES = { city: 'Estações com o nome desta cidade.', near: 'Estações cadastradas até 80 km daqui.', country: 'Sem estação cadastrada na cidade. Mostrando as mais ouvidas do país.', none: 'Nenhuma estação cadastrada para este local.' };
-async function selectCity(c, { play = true, fly = true, keepList = false, pop = false } = {}){
+async function selectCity(c, { play = true, fly = true, keepList = false, pop = false, max, ms } = {}){
   if (fly && trip && trip.active) trip.pause();
   S.city = c; const tok = ++S.sel; S.seen.add(c); document.body.classList.add('has-city'); E.popBtn.hidden = false; if (pop) setSheet(true); else if (fly) setSheet(false);
   syncUrl(c); globe && (globe.setSelected(c), globe.setAudioPoint(null), fly && globe.flyTo(c));
@@ -255,7 +272,7 @@ async function selectCity(c, { play = true, fly = true, keepList = false, pop = 
     E.popBtn.lastElementChild.textContent = info.cands.length ? `Estações (${info.cands.length})` : 'Estações'; E.locNote.textContent = noteFor(c, info); paintCityList();
   }
   E.globeHint.textContent = `${c.n}, ${c.p}.`;
-  if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return; } S.navMove = false; await tryQueue(info.cands, 0); }
+  if (play){ if (!info.cands.length){ status('Nenhuma estação cadastrada para este local.', true); S.station = null; player.stop(); paintPlayer(); return false; } S.navMove = false; const ok = await tryQueue(info.cands, 0, max, ms); paintPlayer(); return ok; }
   paintPlayer();
 }
 function randomCity(){
@@ -280,7 +297,7 @@ let globe = null;
 function initGlobe(){
   globe = new Globe(E.globe, E.globeWrap, S.cities, {
     onZoomed: z => { E.showAll.hidden = !z; },
-    onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c, { pop: true }); },
+    onSelect: c => { player.unlock(); if (trip && trip.active) trip.pause(); selectCity(c, { pop: !MOB.matches }); },
     onHover: c => { if (c) E.globeHint.textContent = `${c.n}, ${c.p}. Toque para ouvir.`; else if (S.city) E.globeHint.textContent = `${S.city.n}, ${S.city.p}.`; },
     onMiss: () => { E.globeHint.textContent = 'Nenhuma cidade perto desse ponto. Gire o globo ou aproxime.'; },
     onFirstDraw: () => E.globePoster.classList.add('off')
@@ -419,7 +436,7 @@ $('[role="tablist"]').addEventListener('keydown', e => {
 });
 
 /* ---------- busca ---------- */
-const closeSearch = () => { E.searchPanel.hidden = true; };
+const closeSearch = full => { E.searchPanel.hidden = true; if (full){ document.querySelector('.hdr').classList.remove('search-open'); E.searchBtn.setAttribute('aria-expanded', 'false'); E.q.blur(); } };
 const doSearch = debounce(async () => {
   const raw = E.q.value.trim(), q = norm(raw);
   if (q.length < 2){ closeSearch(); return; }
@@ -432,17 +449,17 @@ const doSearch = debounce(async () => {
 }, 250);
 function sections(cities, countries, sts){
   const out = [];
-  if (cities.length){ out.push(h('h3', { text: 'Cidades' })); cities.forEach(c => out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(); player.unlock(); selectCity(c); document.getElementById('globo').scrollIntoView({ behavior: 'smooth' }); } }, h('img', { class: 'flag', src: flagUrl(c.c), alt: '', width: 24, height: 18 }), h('span', {}, c.n, h('small', { text: c.p }))))); }
-  if (countries.length){ out.push(h('h3', { text: 'Países' })); countries.forEach(c => out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(); S.tab = 'country'; S.tabArg = { cc: c.c }; renderTab(); goCountry(c.c, false); document.getElementById('descobrir').scrollIntoView({ behavior: 'smooth' }); } }, h('img', { class: 'flag', src: flagUrl(c.c), alt: '', width: 24, height: 18 }), h('span', {}, c.p, h('small', { text: `${c.count} cidades` }))))); }
+  if (cities.length){ out.push(h('h3', { text: 'Cidades' })); cities.forEach(c => out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(true); player.unlock(); selectCity(c); document.getElementById('globo').scrollIntoView({ behavior: 'smooth' }); } }, h('img', { class: 'flag', src: flagUrl(c.c), alt: '', width: 24, height: 18 }), h('span', {}, c.n, h('small', { text: c.p }))))); }
+  if (countries.length){ out.push(h('h3', { text: 'Países' })); countries.forEach(c => out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(true); S.tab = 'country'; S.tabArg = { cc: c.c }; renderTab(); goCountry(c.c, false); document.getElementById('descobrir').scrollIntoView({ behavior: 'smooth' }); } }, h('img', { class: 'flag', src: flagUrl(c.c), alt: '', width: 24, height: 18 }), h('span', {}, c.p, h('small', { text: `${c.count} cidades` }))))); }
   if (sts === null) out.push(h('p', { class: 'sp-empty', text: 'Buscando estações…' }));
-  else if (sts.length){ out.push(h('h3', { text: 'Estações' })); sts.forEach(s => { reg(s); out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(); playStation(s); } }, logo(s), h('span', {}, s.name, h('small', { text: subline(s) })))); }); }
+  else if (sts.length){ out.push(h('h3', { text: 'Estações' })); sts.forEach(s => { reg(s); out.push(h('button', { class: 'sp-item', type: 'button', onclick: () => { closeSearch(true); playStation(s); } }, logo(s), h('span', {}, s.name, h('small', { text: subline(s) })))); }); }
   if (!out.length || (sts && !sts.length && !cities.length && !countries.length)) return [h('p', { class: 'sp-empty', text: 'Nada encontrado. Tente outro nome.' })];
   return out;
 }
 E.q.addEventListener('input', doSearch);
 E.searchForm.addEventListener('submit', e => { e.preventDefault(); const b = E.searchPanel.querySelector('.sp-item'); if (b) b.click(); else doSearch(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
-document.addEventListener('click', e => { if (!e.target.closest('.search-panel, .search')) closeSearch(); });
+document.addEventListener('click', e => { if (!e.target.closest('.search-panel, .search, .search-btn')) closeSearch(true); });
 
 /* ---------- opções e consentimento ---------- */
 E.optTrip && E.optTrip.addEventListener('click', () => { E.optsDlg.close(); E.tripBtn.click(); });
@@ -612,6 +629,7 @@ new ResizeObserver(setBanner).observe(E.consent.parentElement); new MutationObse
 const syncPad = () => {
   if (!globe || document.body.classList.contains('bigglobe')) return;
   if (fitDone && scrollY > 2) return;
+  if (innerWidth < 768){ const pl0 = E.player ? E.player.getBoundingClientRect().top : innerHeight; globe.setPad(Math.round(innerHeight * .04), Math.max(0, Math.round(innerHeight - pl0)) + 6); fitDone = true; return; }
   const wr = E.globeWrap.getBoundingClientRect(), hd = document.querySelector('.site-header').getBoundingClientRect().bottom, pl = E.player ? E.player.getBoundingClientRect().top : innerHeight;
   const peek = innerWidth < 768 && document.body.classList.contains('has-city') ? (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sheet-h')) || 80) : 0;
   const cta = !E.geoCta.hidden && innerWidth < 1024 && !peek ? E.geoCta.offsetHeight + 56 : 0;
@@ -635,9 +653,9 @@ async function initGeo(){
 async function boot(){
   initI18n();
   const vol = store.get('vol', 0.8); E.pVol.value = vol; player.setVolume(vol); player.setMuted(store.get('muted', false)); paintMute(); paintPlayer(); refreshFavUI();
-  let raw = await (await fetch('/assets/cities.json')).json();
+  let raw = await (await fetch('/assets/cities.json')).json(); const base0 = raw.length;
   try { const r = await fetch('/assets/cities-extra.json'); if (r.ok) raw = mergeCities(raw, await r.json()); } catch {}
-  S.cities = raw; for (const c of raw){ if (!S.byCC.has(c.c)) S.byCC.set(c.c, []); S.byCC.get(c.c).push(c); }
+  S.baseN = base0; S.cities = raw; for (const c of raw){ if (!S.byCC.has(c.c)) S.byCC.set(c.c, []); S.byCC.get(c.c).push(c); }
   const names = new Map(); for (const c of raw){ const k = names.get(c.c) || { c: c.c, p: c.p, t: c.t, count: 0 }; k.count++; names.set(c.c, k); }
   S.countries = [...names.values()].sort((a, b) => a.p.localeCompare(b.p, 'pt'));
   E.countrySel.append(...S.countries.map(c => h('option', { value: c.c, text: c.p }))); setLang(getLang());

@@ -30,7 +30,7 @@ export class Globe {
     this.nightOn = true; this.ambient = !this.lite && matchMedia('(hover:hover) and (pointer:fine)').matches; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.bind(); this.resize();
   }
-  get R(){ return Math.min(this.W, this.H - this.padT - this.padB) / 2 * .86 * this.k; }
+  get R(){ return Math.min(this.W, this.H - this.padT - this.padB) / 2 * (this.W < 768 ? .97 : .86) * this.k; }
   get CY(){ return this.padT + (this.H - this.padT - this.padB) / 2; }
   // reserva as faixas do globo que ficam cobertas (cabeçalho, player, avisos) para ele caber inteiro na parte visível
   setPad(t, b){ t = Math.max(0, Math.round(t)); b = Math.max(0, Math.round(b)); if (t !== this.padT || b !== this.padB){ this.padT = t; this.padB = b; this.invalidate(); } }

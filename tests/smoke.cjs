@@ -121,7 +121,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
   }
 
   // ---- globo real, viagem, páginas dentro do app e redes
-  for (const w of [390, 1366]) {
+  for (const w of [1366]) {
     const { ctx, page, errs } = await newPage(browser, w, A.url);
     await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900 && window.__wg.globe.ready, null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(600);
@@ -176,7 +176,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     await u.page.goto(A.url + '/?teste'); await u.page.waitForTimeout(1200);
     const g2 = await u.page.evaluate(() => ({ cta: !document.getElementById('geoCta').hidden, loc: document.getElementById('locCity').textContent }));
     ok('perto de mim: sem permissão ainda, mostra o botão e não escolhe cidade sozinho', g2.cta, g2);
-    await u.ctx.grantPermissions(['geolocation']); await u.page.click('#geoBtn');
+    await u.ctx.grantPermissions(['geolocation']); await u.page.evaluate(() => document.getElementById('geoBtn').click());
     await u.page.waitForFunction(() => document.getElementById('locCity').textContent !== 'Nenhuma cidade escolhida' && document.getElementById('locCity').textContent !== '', null, { timeout: 15000 }).catch(() => {});
     await u.page.waitForTimeout(800);
     const g3 = await u.page.evaluate(() => ({ city: document.getElementById('locCity').textContent, country: document.getElementById('locCountry').textContent, cta: document.getElementById('geoCta').hidden, st: window.__wg.player.state }));
@@ -231,7 +231,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     ok('zoom: botões + e − sobre o globo (PC)', v === 'flex' && kb > kmin + .1, { v, kb, kmin });
     ok('zoom: sem erros no console', !errs.length, errs); await ctx.close();
   }
-  for (const w of [390, 1280]) { // sem botão "Voltar ao globo": os links do topo fecham a página interna e a rádio continua
+  for (const w of [1280]) { // sem botão "Voltar ao globo": os links do topo fecham a página interna e a rádio continua
     const { ctx, page, errs } = await newPage(browser, w, A.url, { 'wg.consent': '"no"' });
     await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => { window.__wg.player.unlock(); window.__wg.selectCity(window.__wg.S.cities.find(c => c.n === 'Lima')); });
@@ -252,6 +252,33 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     ok('tema claro: corpo e player ficam claros', c.theme === 'light' && c.body > 200 && c.player > 200 && c.hint > 200, c);
     ok('tema claro: sem erros no console', !errs.length, errs); await ctx.close();
   }
+  { // celular: tela cheia só com globo, lupa, play e pular
+    const { ctx, page, errs } = await newPage(browser, 390, A.url, { 'wg.consent': '"no"' });
+    await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(900);
+    const vis = ids => page.evaluate(ids => ids.filter(i => { const e = document.querySelector(i); return e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden'; }), ids);
+    const sh = await vis(['#searchBtn', '#pPlay', '#pNext', '#pName', '#globe']);
+    ok('390px · celular: lupa, play, pular, nome e globo visíveis', sh.length === 5, sh);
+    const hid = await vis(['#menuBtn', '#langSel', '#themeBtn', '#randomBtn', '#tripBtn', '#zIn2', '#zOut2', '#pVol', '#pMore', '#pPrev', '#pFav', '#pOther', '#pStatus', '#adTop', '#popBtn', '#countrySel', '#nearBtn', '#globeHint', '.stage-intro h1', '#loc', '#descobrir', '.site-footer', '#geoCta']);
+    ok('390px · celular: todo o resto escondido', hid.length === 0, hid);
+    const lay = await page.evaluate(() => { const w = document.getElementById('globeWrap').getBoundingClientRect(); return { ww: Math.round(w.width), wh: Math.round(w.height), vw: innerWidth, vh: innerHeight, sy: document.documentElement.scrollHeight - innerHeight, sx: document.documentElement.scrollWidth - innerWidth, ov: getComputedStyle(document.body).overflow, ta: getComputedStyle(document.getElementById('globe')).touchAction, R: Math.round(window.__wg.globe.R), W: window.__wg.globe.W }; });
+    ok('390px · celular: globo ocupa a tela toda, sem rolagem, com touch-action none', lay.ww === lay.vw && lay.wh === lay.vh && lay.sy <= 0 && lay.sx <= 0 && lay.ov === 'hidden' && lay.ta === 'none', lay);
+    ok('390px · celular: globo grande (ocupa quase toda a largura)', lay.R * 2 >= lay.W * .9, lay);
+    await page.click('#searchBtn'); await page.waitForTimeout(250);
+    const o1 = await page.evaluate(() => ({ q: document.getElementById('q').getClientRects().length > 0, foc: document.activeElement === document.getElementById('q') }));
+    ok('390px · celular: lupa abre o campo de busca em overlay com foco', o1.q && o1.foc, o1);
+    await page.fill('#q', 'Lima'); await page.waitForTimeout(500);
+    await page.locator('#searchPanel .sp-item').first().click(); await page.waitForTimeout(800);
+    const o2 = await page.evaluate(() => ({ open: document.querySelector('.hdr').classList.contains('search-open'), pan: document.getElementById('searchPanel').hidden, city: window.__wg.S.city && window.__wg.S.city.n, pop: document.getElementById('loc').classList.contains('open') }));
+    ok('390px · celular: escolher na busca fecha o overlay e vai para a cidade (sem pop-up)', !o2.open && o2.pan && /Lima/.test(o2.city) && !o2.pop, o2);
+    await page.waitForFunction(() => window.__wg.player.state === 'playing', null, { timeout: 20000 }).catch(() => {});
+    // pular: a outra estação da cidade falha -> vai em silêncio para outra cidade e toca
+    const r = await page.evaluate(() => { const w = window.__wg, q = w.S.queue; w.S.queue = [q[0], { ...q[0], id: 'zz-bad', name: 'Fora do Ar', url: 'https://bad.example/x.mp3', url_resolved: 'https://bad.example/x.mp3', urlResolved: 'https://bad.example/x.mp3' }]; w.S.qi = 0; return { n: q.length }; });
+    await page.click('#pNext'); await page.waitForTimeout(500);
+    await page.waitForFunction(() => window.__wg.player.state === 'playing' && window.__wg.S.station && window.__wg.S.station.id !== 'zz-bad' && window.__wg.S.city && window.__wg.S.city.n !== 'Lima', null, { timeout: 40000 }).catch(() => {});
+    const o3 = await page.evaluate(() => ({ st: window.__wg.player.state, city: window.__wg.S.city && window.__wg.S.city.n, sid: window.__wg.S.station && window.__wg.S.station.id, msg: getComputedStyle(document.getElementById('pStatus')).display }));
+    ok('390px · celular: Pular troca de estação/cidade e toca sem mostrar erro', o3.st === 'playing' && o3.sid !== 'zz-bad' && o3.msg === 'none', o3);
+    ok('390px · celular: sem erros no console', !errs.length, errs); await ctx.close();
+  }
   { // divisas (países e estados) carregadas dos dados Natural Earth e desenhadas sem erro
     const { ctx, page, errs } = await newPage(browser, 1280, A.url, { 'wg.consent': '"no"' });
     const gj = JSON.stringify({ features: [{ geometry: { type: 'LineString', coordinates: [[-50, -10], [-40, -10], [-40, -20]] } }, { geometry: { type: 'MultiLineString', coordinates: [[[0, 0], [10, 0]], [[0, 5], [10, 5]]] } }] });
@@ -266,7 +293,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     for (const n of ['a.png', 'b.png', 'c.png']) fs.writeFileSync(`dist-car/anuncios/${n}`, png);
     fs.writeFileSync('dist-car/anuncios/lista.json', JSON.stringify({ itens: [{ src: '/anuncios/a.png', link: 'https://exemplo.com' }, { src: '/anuncios/b.png', link: '' }, { src: '/anuncios/c.png', link: 'http://inseguro.com' }, { src: '/anuncios/../x.png', link: '' }] }));
     const C = await serve('dist-car');
-    for (const w of [1280, 390]) {
+    for (const w of [1280]) {
       const { ctx, page, errs } = await newPage(browser, w, C.url, { 'wg.consent': '"no"' });
       await page.goto(C.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
       await page.evaluate(() => window.__wg.selectCity(window.__wg.S.cities.find(c => c.n === 'Lima'), { play: false })); await page.waitForTimeout(800);
@@ -296,11 +323,11 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.globe && window.__wg.globe.ready, null, { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(900);
     const g = await page.evaluate(() => { const gl = window.__wg.globe, wr = document.getElementById('globeWrap').getBoundingClientRect(), hd = document.querySelector('.site-header').getBoundingClientRect().bottom, pl = document.getElementById('player').getBoundingClientRect().top;
       const cy = wr.top + gl.CY, top = cy - gl.R, bot = cy + gl.R, cx = wr.left + wr.width / 2; return { top: Math.round(top), bot: Math.round(bot), hd: Math.round(hd), pl: Math.round(pl), left: Math.round(cx - gl.R), right: Math.round(cx + gl.R), vw: innerWidth, k: gl.k, wr: [Math.round(wr.top), Math.round(wr.height)], pad: [gl.padT, gl.padB], stage: Math.round(document.querySelector('.stage').getBoundingClientRect().height), intro: Math.round(document.querySelector('.stage-intro').getBoundingClientRect().height), bar: Math.round(document.querySelector('.globe-bar').getBoundingClientRect().height), banner: getComputedStyle(document.documentElement).getPropertyValue('--banner-h') }; });
-    ok(`${w}x${h} · globo inteiro na tela inicial (entre cabeçalho e player)`, g.top >= g.hd - 1 && g.bot <= g.pl + 1 && g.left >= 0 && g.right <= g.vw, g);
+    ok(`${w}x${h} · globo inteiro na tela inicial (entre cabeçalho e player)`, g.top >= (w < 768 ? 0 : g.hd) - 1 && g.bot <= g.pl + 1 && g.left >= 0 && g.right <= g.vw, g);
     ok(`${w}x${h} · globo não é minúsculo`, g.bot - g.top >= Math.min(160, w * .4), g);
     await ctx.close();
   }
-  for (const w of [390, 1280]) { // tema claro/escuro e duas janelas de anúncio no painel lateral
+  for (const w of [1280]) { // tema claro/escuro e duas janelas de anúncio no painel lateral
     const { ctx, page, errs } = await newPage(browser, w, A.url);
     if (w >= 768) { await page.route('**/anuncios/lista.json', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ itens: [{ src: '/anuncios/a.png', link: '' }, { src: '/anuncios/b.png', link: '' }] }) })); await page.route('**/anuncios/*.png', r => r.fulfill({ contentType: 'image/png', body: PNG })); }
     await page.goto(A.url + '/?teste&adpreview'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
@@ -318,7 +345,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     await page.click('#themeBtn'); const b2 = await page.evaluate(() => document.documentElement.dataset.theme); ok(`${w}px · tema escuro: volta ao clicar de novo`, b2 === 'dark', b2);
     ok(`${w}px · tema: sem erros no console`, !errs.length, errs); await ctx.close();
   }
-  for (const w of [390, 1280]) { // Globo grande: globo maior + "no ar" + mini player, som continua
+  for (const w of [1280]) { // Globo grande: globo maior + "no ar" + mini player, som continua
     const { ctx, page, errs } = await newPage(browser, w, A.url);
     await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => { window.__wg.player.unlock(); window.__wg.selectCity(window.__wg.S.cities.find(c => c.n === 'Lima')); });
@@ -377,7 +404,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     await ctx.close();
   }
   { // Viagem por qualquer cidade: geocodificação + rádios por proximidade com distância
-    for (const w of [390, 1280]){
+    for (const w of [1280]){
       const { ctx, page, errs } = await newPage(browser, w, A.url);
       await page.route('https://geocoding-api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ results: [{ name: 'Vilaquieta', latitude: -22.0, longitude: -46.0, country: 'Brasil', country_code: 'BR', admin1: 'Minas Gerais', timezone: 'America/Sao_Paulo' }] }) }));
       await page.route(/radio-browser\.info/, r => { const u = r.request().url(); r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(!/geo_lat/.test(u) ? (/name=Vilaquieta|state=Vilaquieta/.test(u) ? [] : api(u)) : /geo_distance=30000/.test(u) ? [] : [mk('far1', 'Radio Longe', 'BR', { geo_lat: -22.24, geo_long: -46.0 })]) }); });
@@ -419,7 +446,7 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     ok('SEO/links: sem erros no console', !errs.length, errs); await ctx.close();
   }
   { // idiomas
-    for (const w of [390, 1280]){
+    for (const w of [1280]){
       const { ctx, page, errs } = await newPage(browser, w, A.url);
       await page.goto(A.url + '/?teste'); await page.waitForFunction(() => window.__wg && window.__wg.S.cities.length > 1900, null, { timeout: 15000 }).catch(() => {});
       const pt = await page.evaluate(() => ({ h: document.querySelector('.hero h1, h1') && document.querySelector('.hero h1, h1').textContent, lang: document.documentElement.lang }));

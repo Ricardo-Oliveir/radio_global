@@ -685,3 +685,46 @@ body.bigglobe .ad-panel,body.bigglobe .pop-bg,body.bigglobe #popBtn{display:none
 .loc-card.open .flag{flex:none}
 .loc-card.open .loc-time{flex:none;margin-left:0}
 .loc-card.open .sheet-btn{flex:none}
+
+/* ===== Mobile (<=767px): tela cheia só com o globo e 3 controles (lupa, play/pause, pular). Desktop não é afetado. ===== */
+@media (max-width:767px){
+  html,body{height:100dvh!important;overflow:hidden!important;overscroll-behavior:none;padding:0!important;margin:0!important}
+  body{position:fixed;inset:0;width:100%}
+  /* limpeza visual */
+  .stage-intro,.globe-bar,.zoom-fab,.bg-fabs,.trip-fab,.trip-bar,.onair,.geo-cta,.hint,#globeHint,.ad,.ad-top,.ad-panel,.loc-card,.pop-bg,#descobrir,#favoritos,.site-footer,.hdr-act,.nav,.menu-btn,.brand-text,#popBtn,.p-status,.p-vu,.live,.p-side,.p-x,.more-btn,#pLogo,.hdr .search-btn[hidden]{display:none!important}
+  /* globo em tela cheia */
+  main,.stage{position:fixed!important;inset:0!important;display:block!important;width:100%!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important;max-width:none!important}
+  .globe-card{display:block!important;position:fixed;inset:0;padding:0;border:0;background:none}
+  .globe-wrap{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;max-width:none!important;margin:0!important;border-radius:0!important;touch-action:none!important}
+  .globe-wrap canvas{touch-action:none!important;width:100%;height:100%}
+  /* topo: marca discreta + lupa */
+  .site-header{position:fixed!important;top:0;left:0;right:0;z-index:60;background:none!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
+  .site-header .hdr{display:flex!important;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 12px 0!important;min-height:0}
+  .site-header .hdr>*,.site-header .search-panel{pointer-events:auto}
+  .brand{opacity:.9}.brand img{width:32px;height:32px}
+  .search-btn{display:inline-flex!important;width:46px;height:46px;border-radius:50%;background:rgba(18,18,20,.68);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  /* busca em overlay */
+  .hdr .search{display:none!important}
+  .hdr.search-open .search{display:flex!important;position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;z-index:72;height:52px;margin:0;background:var(--surface);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.5)}
+  .hdr.search-open .brand,.hdr.search-open .search-btn{visibility:hidden}
+  body:has(.hdr.search-open)::before{content:"";position:fixed;inset:0;z-index:65;background:rgba(6,8,16,.62)}
+  .search-panel{position:fixed;top:calc(72px + env(safe-area-inset-top));left:12px;right:12px;max-height:calc(100dvh - 96px - env(safe-area-inset-top));z-index:72;margin:0;overflow:auto}
+  .search-panel[hidden]{display:none}
+  /* player flutuante compacto: nome + play + pular */
+  .player,.player.open{position:fixed!important;left:12px!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;top:auto!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"info ctrl"!important;align-items:center;gap:8px!important;padding:8px 10px 8px 16px!important;border:1px solid var(--line)!important;border-radius:22px!important;background:rgba(16,16,17,.82)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.45)!important}
+  .player .p-info{grid-area:info;min-width:0}
+  .player .p-text{min-width:0}.player .p-name,.player .p-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .player .p-name{font-size:15px}.player .p-meta{font-size:12px}
+  .player .p-ctrl,.player.open .p-ctrl{grid-area:ctrl;display:flex!important;flex-wrap:nowrap;gap:8px!important;justify-content:flex-end}
+  .player .p-ctrl .icon-btn{width:48px;height:48px}
+  .player .p-ctrl .icon-btn.play{width:54px;height:54px}
+  :root[data-theme="light"] .player,:root[data-theme="light"] .player.open{background:rgba(243,239,232,.88)!important}
+  :root[data-theme="light"] .search-btn{background:rgba(243,239,232,.8)}
+  main,.stage,.globe-card,.globe-wrap{background:transparent!important}
+  .stage::before{position:fixed!important;inset:0!important}
+  :root[data-theme="light"] .stage::before{background:radial-gradient(60% 60% at 50% 45%,rgba(70,100,190,.28),transparent 74%),linear-gradient(180deg,#3d4c7e 0%,#5a6a9e 50%,#8a97bf 100%)!important;opacity:1!important}
+  :root[data-theme="light"] body{background:#3d4c7e}
+  /* aviso de cookies compacto, acima do player */
+  .consent{position:fixed;left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:75;margin:0;max-height:40dvh;overflow:auto}
+  .consent[hidden]{display:none}
+}
