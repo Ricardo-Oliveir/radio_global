@@ -8,6 +8,8 @@ const TEX = ['/assets/img/earth.jpg', 'https://cdn.jsdelivr.net/npm/three-globe@
 const TEX_HI = ['https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg', 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r150/examples/textures/planets/earth_atmos_2048.jpg'];
 // Mapa em blocos (tiles): perto do zoom máximo a imagem única fica borrada, então um mosaico de blocos NASA GIBS (domínio público, sem chave) é colado sobre ela.
 // Para usar outro provedor (mais detalhe): window.__WG_TILES = { url: 'https://.../{z}/{x}/{y}.jpg', maxZ: 18 } (ou TILE_URL/TILE_MAXZ no build).
+// Camada de detalhe (ruas): entra quando o zoom passa do que a NASA oferece (nível 8). OpenStreetMap exige crédito visível. Sem efeito se você definir TILE_URL (provedor próprio).
+const DETAIL = { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZ: 17 };
 const TILES = { url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg', maxZ: 8 };
 const loadImg = u => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.decoding = 'async'; i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = u; });
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -19,9 +21,10 @@ export function slerp(a, b, t){
   const s = Math.sin(w), x = Math.sin((1 - t) * w) / s, y = Math.sin(t * w) / s;
   return unvec([x * A[0] + y * B[0], x * A[1] + y * B[1], x * A[2] + y * B[2]]);
 }
-const KMAX = 60; // zoom estilo mapa: dá para chegar bem perto de uma cidade grande
+const KMAX = 3000; // zoom estilo mapa: dá para chegar bem perto de uma cidade grande
 export class Globe {
   constructor(canvas, wrap, cities, cb){
+    this.credit = Object.assign(document.createElement('a'), { className: 'map-credit', href: 'https://www.openstreetmap.org/copyright', target: '_blank', rel: 'noopener', textContent: '© Colaboradores do OpenStreetMap', hidden: true }); wrap.append(this.credit);
     this.borders = new Borders(() => this.invalidate());
     Object.assign(this, { canvas, wrap, cities, cb, ctx: canvas.getContext('2d'), lon: -30, lat: 18, k: 1, sel: null, hover: null, land: null, grat: null, W: 0, H: 0, padT: 0, padB: 0, dpr: 1, raf: 0, anim: null, visible: true, spin: false, lastTouch: 0, ptrs: new Map(), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, ready: false });
     new ResizeObserver(() => this.resize()).observe(wrap);
@@ -85,8 +88,9 @@ void main(){
   float phi=asin(clamp(y*c0+z*s0,-1.,1.)),lam=uLon+atan(x,z*c0-y*s0);
   vec2 uv=vec2(lam/6.2831853+.5,.5-phi/3.1415927);
   vec3 c=textureGrad(uT,vec2(fract(uv.x),uv.y),dFdx(uv),dFdy(uv)).rgb;
+  float pm=0.;
   if(uPO>.5){float ym=.5-log(tan(.7853982+phi*.5))/6.2831853;vec2 pp=vec2(fract(uv.x-uPB.x)/uPB.z,(ym-uPB.y)/uPB.w);
-    vec4 pc=texture(uP,clamp(pp,0.,1.));vec2 e2=min(pp,1.-pp);c=mix(c,pc.rgb,pc.a*smoothstep(0.,.07,min(e2.x,e2.y)));}
+    vec4 pc=texture(uP,clamp(pp,0.,1.));vec2 e2=min(pp,1.-pp);pm=pc.a*smoothstep(0.,.07,min(e2.x,e2.y));c=mix(c,pc.rgb,pm);}
   float lu=dot(c,vec3(.3,.59,.11));c=mix(vec3(lu),c,1.16);c=clamp((c-.5)*1.08+.5+.015,0.,1.);
   float wat=clamp((c.b-c.r)*4.5-.12,0.,1.)*(1.-smoothstep(.5,.72,lu));
   vec3 L=normalize(vec3(-.26,.32,.91));
@@ -95,9 +99,9 @@ void main(){
   float day=smoothstep(-.14,.2,dd);
   float cl=0.;
   if(uCl>.5){vec3 sp=vec3(cos(phi)*cos(lam+uTm),cos(phi)*sin(lam+uTm),sin(phi));cl=smoothstep(.54,.8,fbm(sp*3.2)*.75+fbm(sp*8.)*.35);}
-  c=mix(c,vec3(.97,.98,1.),cl*.6);
+  c=mix(c,vec3(.97,.98,1.),cl*.6*(1.-pm));
   c=c*l+vec3(rim*.35,rim*.6,rim);c*=1.-.24*pow(r2,1.5);
-  vec3 Hh=normalize(L+vec3(0.,0.,1.));float sp2=pow(max(dot(vec3(x,y,z),Hh),0.),48.)*wat*(1.-cl)*.7;
+  vec3 Hh=normalize(L+vec3(0.,0.,1.));float sp2=pow(max(dot(vec3(x,y,z),Hh),0.),48.)*wat*(1.-cl)*(1.-pm)*.7;
   c+=vec3(.75,.88,1.)*sp2*day;
   float fr=pow(1.-z,2.2);c+=vec3(.20,.42,.95)*fr*.5*mix(.35,1.,day);
   vec3 nt=c*vec3(.2,.28,.5)+vec3(.0,.012,.04);
@@ -133,18 +137,20 @@ void main(){
   // ---- mapa em blocos ----
   tcfg(){ return window.__WG_TILES || (config.tileUrl ? { url: config.tileUrl, maxZ: config.tileMaxZ || 8 } : TILES); }
   patchOn(R){ return !!(this.patch && this.texW && 2 * Math.PI * R > this.texW * 1.15); }
-  tileZ(R){ return Math.max(3, Math.min(this.tcfg().maxZ, Math.round(Math.log2(2 * Math.PI * R * Math.min(this.dpr, 1.5) / 256)))); }
+  det(){ return !window.__WG_TILES && !config.tileUrl && this.tcfg().maxZ < DETAIL.maxZ ? DETAIL : null; }
+  tileZ(R){ const b = this.tcfg(), d = this.det(), z = Math.round(Math.log2(2 * Math.PI * R * Math.min(this.dpr, 1.5) / 256));
+    if (d && z > b.maxZ) return Math.max(b.maxZ + 1, Math.min(d.maxZ, Math.round(Math.log2(2 * Math.PI * R / 256)))); return Math.max(3, Math.min(b.maxZ, z)); }
   patchTick(R){
     if (!this.G || !this.texW || this.anim || this.ptrs.size || this.kT != null || 2 * Math.PI * R <= this.texW * 1.15) return;
     clearTimeout(this._pt); this._pt = setTimeout(() => this.buildPatch(this.tileZ(this.R)), 220);
   }
   tileXY(z){ const n = 2 ** z, f = this.lat * rad; return [(((this.lon + 180) / 360) % 1 + 1) % 1 * n, (.5 - Math.log(Math.tan(Math.PI / 4 + Math.max(-1.48, Math.min(1.48, f)) / 2)) / (2 * Math.PI)) * n]; }
   async buildPatch(z){
-    const N = this.lite ? 4 : 8, n = 2 ** z, [fx, fy] = this.tileXY(z), p = this.patch;
+    const N = this.lite ? 6 : 8, n = 2 ** z, [fx, fy] = this.tileXY(z), p = this.patch;
     if (p && p.z === z && Math.abs(fx - (p.x0 + N / 2)) < N * .22 && Math.abs(fy - (p.y0 + N / 2)) < N * .22) return;
-    const x0 = Math.floor(fx - N / 2), y0 = Math.max(0, Math.min(n - N, Math.floor(fy - N / 2))), tok = this._ptok = (this._ptok || 0) + 1, cfg = this.tcfg();
+    const x0 = Math.floor(fx - N / 2), y0 = Math.max(0, Math.min(n - N, Math.floor(fy - N / 2))), tok = this._ptok = (this._ptok || 0) + 1, cfg = z > this.tcfg().maxZ && this.det() ? DETAIL : this.tcfg();
     const cv = document.createElement('canvas'); cv.width = cv.height = N * 256; const x = cv.getContext('2d'), cache = this.tileCache || (this.tileCache = new Map());
-    let t = 0; const flush = () => { clearTimeout(t); t = setTimeout(() => { if (tok === this._ptok) this.uploadPatch(cv, { z, x0, y0, N }); }, 120); };
+    let t = 0; const flush = () => { clearTimeout(t); t = setTimeout(() => { if (tok === this._ptok) this.uploadPatch(cv, { z, x0, y0, N, detail: cfg === DETAIL }); }, 120); };
     const jobs = []; for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) jobs.push([i, j]);
     jobs.sort((a, b) => Math.hypot(a[0] - N / 2 + .5, a[1] - N / 2 + .5) - Math.hypot(b[0] - N / 2 + .5, b[1] - N / 2 + .5));
     await Promise.all(jobs.map(async ([i, j]) => {
@@ -281,6 +287,7 @@ void main(){
     const shade = ctx.createRadialGradient(cx - R * .25, cy - R * .3, R * .4, cx, cy, R);
     shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, this.tex ? 'rgba(2,8,30,.28)' : 'rgba(2,8,30,.55)'); if (!useGL){ ctx.fillStyle = shade; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
     if (this.tex || useGL) this.borders.draw(ctx, this, this.lite);
+    { const det = this.patchOn(R) && this.patch.detail; if (this.credit.hidden === det) this.credit.hidden = !det; }
     ctx.restore();
     const r = Math.max(1.3, Math.min(3.6, R * .0058)); ctx.beginPath();
     const stp = this.lite ? (this.k < 1.8 ? 2 : 1) : 1, cs = this.cities, sn = this.sun(), sCl = Math.cos(sn.lat), sSl = Math.sin(sn.lat), nOn = this.nightOn;

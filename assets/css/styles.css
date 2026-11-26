@@ -720,6 +720,7 @@ body.bigglobe .ad-panel,body.bigglobe .pop-bg,body.bigglobe #popBtn{display:none
   .player .p-ctrl .icon-btn.play{width:54px;height:54px}
   :root[data-theme="light"] .player,:root[data-theme="light"] .player.open{background:rgba(243,239,232,.88)!important}
   :root[data-theme="light"] .search-btn{background:rgba(243,239,232,.8)}
+  main>:not(.stage),main section.block,.block,#visBox,#recentBox,#favBox,#discBox,.chips{display:none!important}
   main,.stage,.globe-card,.globe-wrap{background:transparent!important}
   .stage::before{position:fixed!important;inset:0!important}
   :root[data-theme="light"] .stage::before{background:radial-gradient(60% 60% at 50% 45%,rgba(70,100,190,.28),transparent 74%),linear-gradient(180deg,#3d4c7e 0%,#5a6a9e 50%,#8a97bf 100%)!important;opacity:1!important}
@@ -728,3 +729,27 @@ body.bigglobe .ad-panel,body.bigglobe .pop-bg,body.bigglobe #popBtn{display:none
   .consent{position:fixed;left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:75;margin:0;max-height:40dvh;overflow:auto}
   .consent[hidden]{display:none}
 }
+
+/* ===== Desktop: cartão de informações (rádio, cidade, país, hora) acima da publicidade; crédito do mapa ===== */
+.map-credit{position:absolute;right:8px;bottom:8px;z-index:4;font-size:10px;color:#fff;background:rgba(0,0,0,.5);padding:2px 7px;border-radius:6px;text-decoration:none}
+.map-credit[hidden]{display:none}
+.info-card{display:none}
+@media (min-width:768px){
+  .ad-panel{display:flex;flex-direction:column;gap:0}
+  .ad-panel .ad-pages{position:relative;flex:1 1 auto;min-height:240px}
+  .info-card{display:block;flex:none;padding:18px 18px 16px;border-bottom:1px solid var(--line)}
+  .info-card[hidden]{display:none}
+  .ic-top{display:flex;align-items:center;gap:12px}
+  .ic-flag{width:40px;height:28px;object-fit:cover;border-radius:4px;flex:none}
+  .ic-place{min-width:0;flex:1}
+  .ic-city{font:700 20px/1.15 var(--display);margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ic-country{margin:2px 0 0;font:13px var(--mono);color:var(--dim)}
+  .ic-dn{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap;color:var(--dim)}
+  .ic-time{margin:14px 0 2px;font:700 38px/1 var(--mono);letter-spacing:.02em}
+  .ic-date{margin:0;font:12.5px var(--mono);color:var(--dim)}
+  .ic-radio{margin:14px 0 0;display:flex;flex-direction:column;gap:2px;font-size:15px;min-width:0}
+  .ic-radio b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ic-lbl{font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--coral)}
+}
+@media (max-width:767px){.info-card,.map-credit{bottom:96px}.info-card{display:none!important}}
+:root[data-theme="light"] .info-card{border-color:rgba(24,20,14,.12)}

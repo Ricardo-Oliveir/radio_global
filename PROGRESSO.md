@@ -140,3 +140,9 @@ Limites de verificação até agora: não há acesso daqui ao Radio Browser, ao 
 - Escondidos no celular: textos de introdução, Viagem, Estações, Cidade aleatória, Perto de mim, país, painel/pop-up da cidade, zoom +/-, idioma, tema, menu, anúncios (AdSense não monta mais no celular), mensagens do player, seções de baixo e rodapé. Aviso de cookies continua (compacto, acima do player).
 - Pular (celular): tenta até 3 estações da cidade (4 s cada); se falhar ou acabar, vai em silêncio para outra cidade da base com estação no ar (até 6 tentativas).
 - Desktop inalterado. Testes: 256 ok (testes de layout antigo do celular removidos; novos testes do celular adicionados).
+
+## Parte 27 — Info no desktop, zoom até nível de rua, correção do celular
+- Desktop: cartão de informações no topo da coluna direita (bandeira, cidade, país, hora local grande, data/fuso, dia/noite e rádio no ar) acima do espaço de publicidade. Sem filtros nem outras estações (estações seguem no pop-up "Estações").
+- Zoom máximo de 60× para 3000× (botões +/− 1,5× por clique). Acima do nível 8 da NASA entra a camada de ruas do OpenStreetMap (até nível 17), com crédito "© Colaboradores do OpenStreetMap" visível e na página Sobre. Nuvens e brilho do oceano somem sob o mapa detalhado. Se TILE_URL estiver definida, ela substitui tudo (sem OSM).
+- Celular: "Cidades visitadas" e demais blocos agora escondidos (apareciam atrás do globo).
+- Testes: 257 ok.

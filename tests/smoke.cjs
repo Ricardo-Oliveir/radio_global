@@ -260,6 +260,8 @@ const WIDTHS_ = process.env.W ? process.env.W.split(',').map(Number) : WIDTHS;
     ok('390px · celular: lupa, play, pular, nome e globo visíveis', sh.length === 5, sh);
     const hid = await vis(['#menuBtn', '#langSel', '#themeBtn', '#randomBtn', '#tripBtn', '#zIn2', '#zOut2', '#pVol', '#pMore', '#pPrev', '#pFav', '#pOther', '#pStatus', '#adTop', '#popBtn', '#countrySel', '#nearBtn', '#globeHint', '.stage-intro h1', '#loc', '#descobrir', '.site-footer', '#geoCta']);
     ok('390px · celular: todo o resto escondido', hid.length === 0, hid);
+    const vb = await page.evaluate(() => { const b = document.getElementById('visBox'); b.hidden = false; const r = b.getClientRects().length; b.hidden = true; return r; });
+    ok('390px · celular: "Cidades visitadas" nunca aparece por cima do globo', vb === 0, vb);
     const lay = await page.evaluate(() => { const w = document.getElementById('globeWrap').getBoundingClientRect(); return { ww: Math.round(w.width), wh: Math.round(w.height), vw: innerWidth, vh: innerHeight, sy: document.documentElement.scrollHeight - innerHeight, sx: document.documentElement.scrollWidth - innerWidth, ov: getComputedStyle(document.body).overflow, ta: getComputedStyle(document.getElementById('globe')).touchAction, R: Math.round(window.__wg.globe.R), W: window.__wg.globe.W }; });
     ok('390px · celular: globo ocupa a tela toda, sem rolagem, com touch-action none', lay.ww === lay.vw && lay.wh === lay.vh && lay.sy <= 0 && lay.sx <= 0 && lay.ov === 'hidden' && lay.ta === 'none', lay);
     ok('390px · celular: globo grande (ocupa quase toda a largura)', lay.R * 2 >= lay.W * .9, lay);

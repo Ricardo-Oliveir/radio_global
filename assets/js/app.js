@@ -21,7 +21,7 @@ const S = {
   opts: Object.assign({ auto: false, mins: 5, spin: matchMedia('(hover:hover) and (pointer:fine)').matches }, store.get('opts', {})), reg: new Map(), tab: 'pop', tabArg: {}, autoT: 0
 };
 const E = {};
-for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optNight', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'pMore', 'loc', 'popBg', 'popBtn', 'adPanel', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn', 'cityFilters', 'tripFromQ', 'tripToQ', 'tripSwap', 'tripMe', 'tripRes', 'tripSt', 'visList', 'visBox'])
+for (const id of ['menuBtn', 'nav', 'q', 'searchForm', 'searchPanel', 'globe', 'globeWrap', 'globePoster', 'globeHint', 'randomBtn', 'countrySel', 'fullBtn', 'locFlag', 'locCity', 'locCountry', 'clock', 'clockTime', 'clockDn', 'clockWeek', 'clockDate', 'clockTz', 'locStations', 'locNote', 'stList', 'similarBox', 'similarList', 'filters', 'grid', 'gridStatus', 'favGrid', 'favEmpty', 'favCount', 'pLogo', 'pName', 'pMeta', 'pLive', 'pPrev', 'pPlay', 'pNext', 'pOther', 'pFav', 'pMute', 'pVol', 'pQuality', 'pOpts', 'pStatus', 'optsDlg', 'optAuto', 'optMins', 'optSpin', 'optNight', 'optClear', 'consent', 'cYes', 'cNo', 'consentBtn', 'player', 'year', 'tripBtn', 'tripBar', 'tripTitle', 'tripStop', 'tripProg', 'tripPause', 'tripNext', 'tripEnd', 'tripFill', 'tripDlg', 'tripFrom', 'tripTo', 'tripDwell', 'tripGo', 'pageView', 'pageBody', 'optTrip', 'searchBtn', 'infoCard', 'infoFlag', 'infoCity', 'infoCountry', 'infoDn', 'infoTime', 'infoDate', 'infoRadio', 'pMore', 'loc', 'popBg', 'popBtn', 'adPanel', 'pVu', 'optNoise', 'nearBtn', 'geoCta', 'geoBtn', 'geoSkip', 'onAir', 'oaStation', 'oaPlace', 'oaTime', 'oaNext', 'oaHist', 'oaAuto', 'zIn2', 'zOut2', 'loc', 'locTime', 'sheetBtn', 'sheetTxt', 'showAll', 'navGlobe', 'adCar', 'updBar', 'updBtn', 'updX', 'bgPanel', 'bgExit', 'player', 'themeBtn', 'cityFilters', 'tripFromQ', 'tripToQ', 'tripSwap', 'tripMe', 'tripRes', 'tripSt', 'visList', 'visBox'])
   E[id] = document.getElementById(id);
 
 const setIcon = (btn, id) => { btn.replaceChildren(icon(id)); };
@@ -113,7 +113,7 @@ document.addEventListener('click', e => {
 const labels = { idle: 'Reproduzir', paused: 'Reproduzir', error: 'Reproduzir', blocked: 'Reproduzir', loading: 'Pausar', playing: 'Pausar' };
 function paintPlayer(){
   const st = S.station, ps = player.state;
-  E.pName.textContent = st ? st.name : 'Nada tocando';
+  E.pName.textContent = st ? st.name : 'Nada tocando'; E.infoRadio.textContent = st ? st.name : 'Nada tocando';
   E.pMeta.textContent = st ? ([S.city ? cityLabel(S.city) : '', st.codec && st.bitrate ? `${st.codec} ${st.bitrate} kbps` : ''].filter(Boolean).join(' · ') || subline(st)) : 'Toque em ▶ para uma cidade ao acaso';
   const lg = logo(st || { name: '♪' }, 'logo'); E.pLogo.replaceChildren(...lg.childNodes);
   if (!st) E.pLogo.replaceChildren(icon('play'));
@@ -253,6 +253,7 @@ function paintClock(){
   const c = S.city; if (!c) return;
   const k = clockInfo(c.z, c.a, c.o);
   E.locTime.textContent = k.time.slice(0, 5); E.clockTime.textContent = k.time; E.clockWeek.textContent = k.weekday.charAt(0).toUpperCase() + k.weekday.slice(1); E.clockDate.textContent = k.date; E.clockTz.textContent = k.tzLabel;
+  E.infoTime.textContent = k.time; E.infoDate.textContent = `${k.weekday.charAt(0).toUpperCase() + k.weekday.slice(1)} · ${k.date} · ${k.tzLabel}`; E.infoDn.textContent = k.isDay ? '☀ Dia' : '☾ Noite'; E.infoDn.dataset.night = k.isDay ? '' : '1';
   E.clockDn.classList.toggle('night', !k.isDay); E.clockDn.replaceChildren(icon(k.isDay ? 'sun' : 'moon'), h('span', { text: k.isDay ? 'Dia' : 'Noite' }));
 }
 setInterval(paintClock, 1000);
@@ -263,6 +264,7 @@ async function selectCity(c, { play = true, fly = true, keepList = false, pop = 
   S.city = c; const tok = ++S.sel; S.seen.add(c); document.body.classList.add('has-city'); E.popBtn.hidden = false; if (pop) setSheet(true); else if (fly) setSheet(false);
   syncUrl(c); globe && (globe.setSelected(c), globe.setAudioPoint(null), fly && globe.flyTo(c));
   E.locFlag.hidden = false; E.locFlag.src = flagUrl(c.c); E.locCity.textContent = c.n; E.locCountry.textContent = c.p;
+  E.infoCard.hidden = false; E.infoFlag.src = flagUrl(c.c); E.infoCity.textContent = c.n; E.infoCountry.textContent = c.p;
   E.clock.hidden = false; paintClock(); store.set('city', c.n + '|' + c.c); pushVisited(c);
   E.globeHint.textContent = `${c.n}, ${c.p}. ${play ? 'Buscando a rádio…' : ''}`;
   if (!keepList){ E.locStations.hidden = false; E.locNote.textContent = 'Buscando estações…'; E.stList.replaceChildren(); E.cityFilters.hidden = true; }
@@ -307,8 +309,8 @@ function initGlobe(){
   const idle = window.requestIdleCallback || (f => setTimeout(f, 600));
   idle(() => globe.loadMap(), { timeout: 2500 });
 }
-E.zIn2.addEventListener('click', () => globe && globe.zoom(1.3));
-E.zOut2.addEventListener('click', () => globe && globe.zoom(1 / 1.3));
+E.zIn2.addEventListener('click', () => globe && globe.zoom(1.5));
+E.zOut2.addEventListener('click', () => globe && globe.zoom(1 / 1.5));
 E.showAll.addEventListener('click', () => globe && globe.showAll());
 E.navGlobe.addEventListener('click', () => globe && globe.showAll());
 // Globo grande: aumenta o globo, mostra o "no ar" e deixa só um mini player (não usa a tela cheia do navegador).

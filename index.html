@@ -182,9 +182,17 @@ __ADS_HEAD__</head>
       </div>
     </aside>
     <div class="pop-bg" id="popBg" hidden></div>
-    <aside class="ad-panel" id="adPanel" aria-label="Publicidade">
-      <div class="ad ad-loc pg on" data-ad="loc" data-show="desktop" hidden></div>
-      <div class="ad ad-car pg" id="adCar" hidden></div>
+    <aside class="ad-panel" id="adPanel" aria-label="Informações e publicidade">
+      <div class="info-card" id="infoCard" hidden>
+        <div class="ic-top"><img id="infoFlag" class="ic-flag" alt="" width="40" height="28"><div class="ic-place"><p class="ic-city" id="infoCity"></p><p class="ic-country" id="infoCountry"></p></div><span class="ic-dn" id="infoDn"></span></div>
+        <p class="ic-time" id="infoTime">--:--:--</p>
+        <p class="ic-date" id="infoDate"></p>
+        <p class="ic-radio"><span class="ic-lbl">No ar</span><b id="infoRadio">Nada tocando</b></p>
+      </div>
+      <div class="ad-pages">
+        <div class="ad ad-loc pg on" data-ad="loc" data-show="desktop" hidden></div>
+        <div class="ad ad-car pg" id="adCar" hidden></div>
+      </div>
     </aside>
   </section>
 
